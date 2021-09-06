@@ -20,14 +20,14 @@ WEIGHT = 480
 LIMIT_H = 50
 LIMIT_L = 40
 
-# Copter LOG目录
+# Copter LOG Path
 ARDUPILOT_LOG_PATH = '/media/rain/data'
 
-# PX4 LOG目录
+# PX4 LOG Path
 PX4_LOG_PATH = '/home/rain/PX4-Autopilot'
 
 
-# Mavlink的LOG中需要的部分
+# Mavlink Part
 LOG_MAP = ['IMU', 'ATT', 'RATE', 'PARM']
 # LOG_MAP = ['ATT', 'RATE']
 

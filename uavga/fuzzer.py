@@ -1,18 +1,16 @@
 import colorsys
 import pickle
 import random
-import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pymavlink import mavutil, mavwp
 from sklearn.cluster import MeanShift, estimate_bandwidth
 from sklearn.decomposition import PCA
 
+import ModelFit.config
 from uavga.uavgeat import UAVProblem
 from uavga.uavgen import UAVGA
-import ModelFit.config
-import matplotlib.pyplot as plt
 
 
 class LGFuzzer(object):

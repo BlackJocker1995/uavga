@@ -1,22 +1,16 @@
 import argparse
 import csv
 import os
+import time
 
-import pickle
-
-# from Cptool.gaSimManager import GaSimManager
-import random
-
+import numpy as np
 import pandas as pd
 
+import Cptool.config
 from Cptool.gaSimManager import GaSimManager
 from uavga.fuzzer import LGFuzzer
-import Cptool.config
-import ModelFit.config
-import time
-import numpy as np
-import getopt
-import sys
+
+# from Cptool.gaSimManager import GaSimManager
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Personal information')

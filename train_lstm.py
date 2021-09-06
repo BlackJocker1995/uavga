@@ -1,4 +1,3 @@
-import Cptool.config
 from ModelFit.approximate import CyLSTM, CyTCN
 
 """

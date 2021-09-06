@@ -1,6 +1,7 @@
 # coding: utf-8
-import pandas
 import numpy as np
+import pandas
+
 
 def read_invalid_csv(file):
     return pandas.read_csv(file, index_col=0)

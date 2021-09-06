@@ -1,6 +1,8 @@
-from ModelFit.approximate import CyLSTM
-import ModelFit.config
 import pandas as pd
+
+import ModelFit.config
+from ModelFit.approximate import CyLSTM
+
 """
 训练LSTM的模型
 """

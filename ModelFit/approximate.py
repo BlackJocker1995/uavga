@@ -1,22 +1,20 @@
 # -*- coding:utf-8 -*-
 import logging
-import os, sys
+import os
 import pickle
 import time
 from abc import abstractmethod
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
-from keras.layers import Dense, Dropout, concatenate, Conv1D, add, Activation, Input, Flatten, Embedding, RepeatVector
+import pandas as pd
+from keras.layers import Dense, Dropout, RepeatVector
 from keras.layers import LSTM
 from keras.models import Sequential
-from tcn import TCN, tcn_full_summary
-from sklearn import model_selection
-from sklearn.model_selection import train_test_split, StratifiedKFold, KFold
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from tensorflow.python.keras.models import load_model, Model
-from tensorflow.python.keras.wrappers.scikit_learn import KerasClassifier
+from tcn import TCN
+from tensorflow.python.keras.models import load_model
 
 import Cptool.config
 import ModelFit.config

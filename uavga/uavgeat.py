@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import geatpy as ea
 import pickle
+
+import geatpy as ea
+import numpy as np
 import pandas as pd
 from tensorflow.python.keras.models import load_model
-from operator import itemgetter
+
 import Cptool.config
 import ModelFit.config
 from Cptool.gaMavlink import GaMavlink

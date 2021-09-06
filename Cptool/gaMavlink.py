@@ -3,22 +3,14 @@ import logging
 import multiprocessing
 import os
 import random
-import secrets
 import shutil
-import sys
-import threading
-import time
-import pickle
-from math import radians
 
 import numpy as np
 import pandas as pd
 import ray
-import re
-from pymavlink import mavutil, mavwp, mavextra
+from pymavlink import mavutil, mavwp
 from pymavlink.mavutil import mavserial
 from pyulog import ULog
-from sklearn.model_selection import train_test_split
 
 import Cptool.config
 

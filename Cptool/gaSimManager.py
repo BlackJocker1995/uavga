@@ -1,18 +1,20 @@
 import logging
 import math
 import multiprocessing
+import os
+import re
 import sys
 import threading
-import time, os
+import time
 
+import eventlet
 import pexpect
-import re
 from pexpect import spawn
 from pymavlink import mavextra, mavwp
 
 import Cptool.config
 from Cptool.gaMavlink import GaMavlink
-import eventlet
+
 
 class GaSimManager(object):
 
@@ -44,9 +46,11 @@ class GaSimManager(object):
         if Cptool.config.MODE == 'Ardupilot':
             if Cptool.config.SIM == 'SITL':
 
-
                 cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py --location=AVC_plane " \
                       f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -v ArduCopter -w -S {Cptool.config.SPEED} "
+            if Cptool.config.SIM == 'Airsim':
+                cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f airsim-copter " \
+                      f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -S {Cptool.config.SPEED}"
 
             self._sitl_task = pexpect.spawn(cmd, cwd=Cptool.config.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8')
         logging.info(f"Start {Cptool.config.MODE} --> [{Cptool.config.SIM}]")

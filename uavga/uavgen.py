@@ -1,10 +1,8 @@
-from uavga.uavgeat import UAVProblem
-import ctypes, inspect
 import geatpy as ea
 import numpy as np
-from pymavlink import mavutil, mavwp, mavextra
-import pandas as pd
+
 from Cptool.gaMavlink import GaMavlink
+from uavga.uavgeat import UAVProblem
 
 
 class UAVGA(object):

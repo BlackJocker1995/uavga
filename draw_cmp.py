@@ -1,7 +1,7 @@
-from ModelFit.approximate import CyLSTM, CyTCN
 import pandas as pd
-import ModelFit.config
-import Cptool.config
+
+from ModelFit.approximate import CyLSTM
+
 """
 生成对比
 """
