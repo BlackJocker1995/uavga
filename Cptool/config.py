@@ -1,19 +1,19 @@
-# SITL类型 PX4 和 Ardupilot
+# SITL Type PX4 and Ardupilot
 # {'PX4','Ardupilot'}
 MODE = 'Ardupilot'
-# 模拟器类型
+# Simulation Type
 # Ardupilot : ['Airsim', 'Morse', 'Gazebo', 'SITL']
 # PX4 : ['Jmavsim']
 SIM = 'SITL'
-# 模拟器加速的
+# Simulation Speed
 SPEED = 10
-# 是否输出Debug信息
+# Output Debug Message
 DEBUG = True
 
-# 风速区间，仅类型为wind的时候有效
+# Wind Speed range
 WIND_RANGE = [8, 10.7]
 
-# 窗口分辨率
+# GUI Windows size
 HEIGHT = 640
 WEIGHT = 480
 
@@ -25,7 +25,6 @@ ARDUPILOT_LOG_PATH = '/media/rain/data'
 
 # PX4 LOG Path
 PX4_LOG_PATH = '/home/rain/PX4-Autopilot'
-
 
 # Mavlink Part
 LOG_MAP = ['IMU', 'ATT', 'RATE', 'PARM']
