@@ -16,17 +16,17 @@ from sklearn.preprocessing import MinMaxScaler
 from tcn import TCN
 from tensorflow.python.keras.models import load_model
 
-import Cptool.config
-import ModelFit.config
+from Cptool.config import toolConfig
+from ModelFit.config import mlConfig
 
 
 class Modeling(object):
     def __init__(self, resize: bool = True, debug: bool = False):
         self._model: Sequential = None
         self._trans: MinMaxScaler = None
-        if Cptool.config.MODE == 'Ardupilot':
+        if toolConfig.MODE == 'Ardupilot':
             self._uav_class = 'Ardupilot'
-        elif Cptool.config.MODE == 'PX4':
+        elif toolConfig.MODE == 'PX4':
             self._uav_class = 'PX4'
         self._resize = resize
 
@@ -44,16 +44,16 @@ class Modeling(object):
 
         # normalize features
 
-        if ModelFit.config.RETRANS:
+        if mlConfig.RETRANS:
             trans = self.load_trans()
 
             values = trans.transform(values)
 
         # frame as supervised learning
-        reframed = self._series_to_supervised(values, ModelFit.config.INPUT_LEN, True)
+        reframed = self._series_to_supervised(values, mlConfig.INPUT_LEN, True)
 
-        if not os.path.exists('model/{}/{}'.format(self._uav_class, ModelFit.config.INPUT_LEN)):
-            os.makedirs('model/{}/{}'.format(self._uav_class, ModelFit.config.INPUT_LEN))
+        if not os.path.exists('model/{}/{}'.format(self._uav_class, mlConfig.INPUT_LEN)):
+            os.makedirs('model/{}/{}'.format(self._uav_class, mlConfig.INPUT_LEN))
 
         return reframed
 
@@ -131,8 +131,8 @@ class Modeling(object):
             raise ValueError('Train or load model at first')
 
         predict_X = self._model.predict(values)
-        # 数据还原
-        if ModelFit.config.RETRANS:
+        # data retrans
+        if mlConfig.RETRANS:
             trans = self.load_trans()
             predict_X = trans.inverse_transform(predict_X)
 
@@ -142,8 +142,8 @@ class Modeling(object):
         if self._model is None:
             logging.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
-        if not os.path.exists(f'{os.getcwd()}/fig/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/{cmp_name}'):
-            os.makedirs(f'{os.getcwd()}/fig/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/{cmp_name}')
+        if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}'):
+            os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}')
 
         values = self._cs_to_sl(test)
         X, Y = self._data_split(values)
@@ -208,7 +208,7 @@ class Modeling(object):
 
             plt.margins(0, 0)
             # plt.gcf().subplots_adjust(bottom=0.12)
-            plt.savefig(f'{os.getcwd()}/fig/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/{cmp_name}/{name.lower()}.{exec}')
+            plt.savefig(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}/{name.lower()}.{exec}')
             # plt.show()
             plt.clf()
 
@@ -216,8 +216,8 @@ class Modeling(object):
         if self._model is None:
             logging.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
-        if not os.path.exists(f'{os.getcwd()}/fig/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/{cmp_name}'):
-            os.makedirs(f'{os.getcwd()}/fig/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/{cmp_name}')
+        if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}'):
+            os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}')
 
         for name, i in zip(['AccX', 'AccY', 'AccZ', 'Roll', 'Pitch', 'Yaw', 'RateRoll', 'RatePitch', 'RateYaw',], range(9)):
             x = X[:, i]
@@ -320,8 +320,8 @@ class Modeling(object):
 
     @staticmethod
     def fit_trans(train_filename):
-        if not os.path.exists(f'model/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}'):
-            os.makedirs(f'model/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}')
+        if not os.path.exists(f'model/{toolConfig.MODE}/{mlConfig.INPUT_LEN}'):
+            os.makedirs(f'model/{toolConfig.MODE}/{mlConfig.INPUT_LEN}')
 
         # load dataset
         dataset = pd.read_csv(train_filename, header=0, index_col=0)
@@ -331,13 +331,13 @@ class Modeling(object):
         trans = MinMaxScaler(feature_range=(0, 1))
         trans.fit(values)
 
-        with open(f'model/{Cptool.config.MODE}/trans.pkl', 'wb') as f:
+        with open(f'model/{toolConfig.MODE}/trans.pkl', 'wb') as f:
             pickle.dump(trans, f)
 
     @staticmethod
     def load_trans():
         # load dataset
-        with open(f'model/{Cptool.config.MODE}/trans.pkl', 'rb') as f:
+        with open(f'model/{toolConfig.MODE}/trans.pkl', 'rb') as f:
             trans = pickle.load(f)
         return trans
 
@@ -355,12 +355,12 @@ class CyLSTM(Modeling):
 
         # split into input and outputs
         X, Y = values[:,
-               : -ModelFit.config.DATA_LEN], \
-               values[:, -ModelFit.config.DATA_LEN: -ModelFit.config.DATA_LEN + ModelFit.config.OUTPUT_DATA_LEN]
+               : -mlConfig.DATA_LEN], \
+               values[:, -mlConfig.DATA_LEN: -mlConfig.DATA_LEN + mlConfig.OUTPUT_DATA_LEN]
 
         # reshape input to be 3D [samples, timesteps, features]
-        X = X.reshape((X.shape[0], ModelFit.config.INPUT_LEN, ModelFit.config.DATA_LEN))
-        Y = Y.reshape((Y.shape[0], ModelFit.config.OUTPUT_DATA_LEN))
+        X = X.reshape((X.shape[0], mlConfig.INPUT_LEN, mlConfig.DATA_LEN))
+        Y = Y.reshape((Y.shape[0], mlConfig.OUTPUT_DATA_LEN))
 
         return X, Y
 
@@ -377,11 +377,11 @@ class CyLSTM(Modeling):
                             shuffle=True)
 
         if num is not None:
-            model.save(f'model/{self._uav_class}/{ModelFit.config.INPUT_LEN}/lstm{num}.h5')
+            model.save(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/lstm{num}.h5')
             plt.plot(history.history['loss'], label=f'train-{num}')
             plt.plot(history.history['val_loss'], label=f'validation-{num}')
         else:
-            model.save(f'model/{self._uav_class}/{ModelFit.config.INPUT_LEN}/lstm.h5')
+            model.save(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/lstm.h5')
             plt.plot(history.history['loss'], label='train')
             plt.plot(history.history['val_loss'], label='validation')
         # plot history
@@ -390,7 +390,7 @@ class CyLSTM(Modeling):
         plt.xlabel('Epochs Time', fontsize=18)
         plt.legend(prop=axis_font)
         # plt.show()
-        plt.savefig(f'model/{self._uav_class}/{ModelFit.config.INPUT_LEN}/loss.pdf')
+        plt.savefig(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/loss.pdf')
         return model
 
     def _build_model(self, train_shape: np.shape):
@@ -398,14 +398,14 @@ class CyLSTM(Modeling):
         model.add(LSTM(128, input_shape=(train_shape[1], train_shape[2])))
         model.add(Dropout(0.1))
         model.add(Dense(128, activation='relu'))
-        model.add(Dense(ModelFit.config.OUTPUT_DATA_LEN))
+        model.add(Dense(mlConfig.OUTPUT_DATA_LEN))
         model.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy', 'mse'])
         model.summary()
 
         return model
 
     def read_model(self):
-        self._model = load_model(f'model/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/lstm.h5')
+        self._model = load_model(f'model/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/lstm.h5')
 
 
 class CyTCN(Modeling):
@@ -420,13 +420,13 @@ class CyTCN(Modeling):
         values = value.values
 
         # split into input and outputs
-        X, Y = values[:, :-ModelFit.config.DATA_LEN], \
-               values[:, ModelFit.config.INPUT_LEN * ModelFit.config.DATA_LEN :
-                         ModelFit.config.INPUT_LEN * ModelFit.config.DATA_LEN + ModelFit.config.OUTPUT_DATA_LEN]
+        X, Y = values[:, :-mlConfig.DATA_LEN], \
+               values[:, mlConfig.INPUT_LEN * mlConfig.DATA_LEN :
+                         mlConfig.INPUT_LEN * mlConfig.DATA_LEN + mlConfig.OUTPUT_DATA_LEN]
 
         # reshape input to be 3D [samples, timesteps, features]
-        X = X.reshape((X.shape[0], ModelFit.config.INPUT_LEN, ModelFit.config.DATA_LEN))
-        Y = Y.reshape((Y.shape[0], 1, ModelFit.config.OUTPUT_DATA_LEN))
+        X = X.reshape((X.shape[0], mlConfig.INPUT_LEN, mlConfig.DATA_LEN))
+        Y = Y.reshape((Y.shape[0], 1, mlConfig.OUTPUT_DATA_LEN))
 
         return X, Y
 
@@ -443,11 +443,11 @@ class CyTCN(Modeling):
                             shuffle=False)
 
         if num is not None:
-            model.save(f'model/{self._uav_class}/{ModelFit.config.INPUT_LEN}/tcn{num}.h5')
+            model.save(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/tcn{num}.h5')
             plt.plot(history.history['loss'], label=f'train-{num}')
             plt.plot(history.history['val_loss'], label=f'validation-{num}')
         else:
-            model.save(f'model/{self._uav_class}/{ModelFit.config.INPUT_LEN}/tcn.h5')
+            model.save(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/tcn.h5')
             plt.plot(history.history['loss'], label='train')
             plt.plot(history.history['val_loss'], label='validation')
         # plot history
@@ -456,7 +456,7 @@ class CyTCN(Modeling):
         plt.xlabel('Epochs Time', fontsize=18)
         plt.legend(prop=axis_font)
         # plt.show()
-        plt.savefig(f'model/{self._uav_class}/{ModelFit.config.INPUT_LEN}/tcn_loss.pdf')
+        plt.savefig(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/tcn_loss.pdf')
         return model
 
     def _build_model(self, train_shape: np.shape):
@@ -465,7 +465,7 @@ class CyTCN(Modeling):
             layers=[
                 TCN(input_shape=(train_shape[1], train_shape[2])),  # output.shape = (batch, 64)
                 RepeatVector(1),  # output.shape = (batch, output_timesteps, 64)
-                Dense(ModelFit.config.OUTPUT_DATA_LEN)  # output.shape = (batch, output_timesteps, output_dim)
+                Dense(mlConfig.OUTPUT_DATA_LEN)  # output.shape = (batch, output_timesteps, output_dim)
             ]
         )
         model.compile(loss="mse",
@@ -475,7 +475,7 @@ class CyTCN(Modeling):
         return model
 
     def read_model(self):
-        self._model = load_model(f'model/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/tcn.h5',
+        self._model = load_model(f'model/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/tcn.h5',
                                  custom_objects={"TCN": TCN})
 
 

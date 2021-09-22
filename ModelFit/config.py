@@ -1,20 +1,30 @@
-# SITL类型 PX4 和 Ardupilot
-MODE = 'Ardupilot'
+class MLConfig:
+    class ConstError(PermissionError):
+        pass
 
-# 是否输出Debug信息
-DEBUG = False
+    class ConstCaseError(ConstError):
+        pass
 
-# LSTM的输入长度
-INPUT_LEN = 3
+    def __setattr__(self, name, value):
+        if name in self.__dict__:
+            raise self.ConstError("can't change const %s" % name)
+        if not name.isupper():
+            raise self.ConstCaseError('const name "%s" is not all uppercase' % name)
+        self.__dict__[name] = value
 
-#
-CONTEXT_LEN = 12
+mlConfig = MLConfig()
 
-# 每一个input数据的长度
-DATA_LEN = CONTEXT_LEN + 20
-
-# 输出的数据长度
-OUTPUT_DATA_LEN = 6
-
-# 是否还原
-RETRANS = True
+# SITL Type PX4 or Ardupilot
+mlConfig.MODE = 'Ardupilot'
+# Output Debug information
+mlConfig.DEBUG = False
+# LSTM Input Length
+mlConfig.INPUT_LEN = 3
+# state + sensor
+mlConfig.CONTEXT_LEN = 12
+# size of input
+mlConfig.DATA_LEN = mlConfig.CONTEXT_LEN + 20
+# size of output
+mlConfig.OUTPUT_DATA_LEN = 6
+# Value retrans
+mlConfig.RETRANS = True

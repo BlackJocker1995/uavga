@@ -6,7 +6,7 @@ import time
 import numpy as np
 import pandas as pd
 
-import Cptool.config
+from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
 from uavga.fuzzer import LGFuzzer
 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     candidate_obj = np.array(candidate_obj, dtype=float).round(8)
     candidate_var = np.array(candidate_var, dtype=float).round(8)
 
-    manager = GaSimManager(debug=Cptool.config.DEBUG)
+    manager = GaSimManager(debug=toolConfig.DEBUG)
 
     results = []
     i = 0
@@ -97,7 +97,7 @@ if __name__ == '__main__':
             if not os.path.exists(f'result/params.csv'):
                 while not os.access(f"result/params.csv", os.W_OK):
                     continue
-                data = pd.DataFrame(columns=(Cptool.config.PARAM + ['score', 'result']))
+                data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
             else:
                 while not os.access(f"result/params.csv", os.W_OK):
                     continue

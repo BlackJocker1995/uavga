@@ -12,9 +12,8 @@ import pexpect
 from pexpect import spawn
 from pymavlink import mavextra, mavwp
 
-import Cptool.config
 from Cptool.gaMavlink import GaMavlink
-
+from Cptool.config import toolConfig
 
 class GaSimManager(object):
 
@@ -37,23 +36,23 @@ class GaSimManager(object):
         启动软件在环 模拟器，分为PX4 和 Ardupilot
         :return:
         """
-        if os.path.exists(f"{Cptool.config.ARDUPILOT_LOG_PATH}/eeprom.bin"):
-            os.remove(f"{Cptool.config.ARDUPILOT_LOG_PATH}/eeprom.bin")
-        if os.path.exists(f"{Cptool.config.ARDUPILOT_LOG_PATH}/mav.parm"):
-            os.remove(f"{Cptool.config.ARDUPILOT_LOG_PATH}/mav.parm")
+        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin"):
+            os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin")
+        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm"):
+            os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm")
 
         cmd = None
-        if Cptool.config.MODE == 'Ardupilot':
-            if Cptool.config.SIM == 'SITL':
+        if toolConfig.MODE == 'Ardupilot':
+            if toolConfig.SIM == 'SITL':
 
                 cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py --location=AVC_plane " \
-                      f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -v ArduCopter -w -S {Cptool.config.SPEED} "
-            if Cptool.config.SIM == 'Airsim':
+                      f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -v ArduCopter -w -S {toolConfig.SPEED} "
+            if toolConfig.SIM == 'Airsim':
                 cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f airsim-copter " \
-                      f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -S {Cptool.config.SPEED}"
+                      f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -S {toolConfig.SPEED}"
 
-            self._sitl_task = pexpect.spawn(cmd, cwd=Cptool.config.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8')
-        logging.info(f"Start {Cptool.config.MODE} --> [{Cptool.config.SIM}]")
+            self._sitl_task = pexpect.spawn(cmd, cwd=toolConfig.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8')
+        logging.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM}]")
         if cmd is None:
             raise ValueError('Not support mode or simulator')
 
@@ -62,31 +61,31 @@ class GaSimManager(object):
         启动软件在环 多个模拟器， Ardupilot
         :return:
         """
-        if os.path.exists(f"{Cptool.config.ARDUPILOT_LOG_PATH}/eeprom.bin"):
-            os.remove(f"{Cptool.config.ARDUPILOT_LOG_PATH}/eeprom.bin")
-        if os.path.exists(f"{Cptool.config.ARDUPILOT_LOG_PATH}/mav.parm"):
-            os.remove(f"{Cptool.config.ARDUPILOT_LOG_PATH}/mav.parm")
+        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin"):
+            os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin")
+        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm"):
+            os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm")
 
         cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py --location=AVC_plane " \
                   f"--out=127.0.0.1:1455{drone_i} --out=127.0.0.1:1454{drone_i} " \
-                  f"-v ArduCopter -w -S {Cptool.config.SPEED} --instance {drone_i}"
+                  f"-v ArduCopter -w -S {toolConfig.SPEED} --instance {drone_i}"
 
-        self._sitl_task = (pexpect.spawn(cmd, cwd=Cptool.config.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8'))
-        logging.info(f"Start {Cptool.config.MODE} --> [{Cptool.config.SIM} - {drone_i}]")
+        self._sitl_task = (pexpect.spawn(cmd, cwd=toolConfig.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8'))
+        logging.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM} - {drone_i}]")
 
     def mav_monitor_init(self, drone_i=0):
         """
         初始化SITL在环
         :return:
         """
-        if Cptool.config.MODE == 'Ardupilot':
+        if toolConfig.MODE == 'Ardupilot':
             while True:
                 line = self._sitl_task.readline()
                 if line.startswith('APM: EKF2 IMU0 is using GPS'):
                     break
                 # if line.startswith('APM: GPS 1: detected as'):
                 #     break
-        elif Cptool.config.MODE == 'PX4':
+        elif toolConfig.MODE == 'PX4':
             while True:
                 line = self._sitl_task.readline()
                 if 'notify negative' in line:

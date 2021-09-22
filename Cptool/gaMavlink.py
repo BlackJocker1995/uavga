@@ -12,7 +12,7 @@ from pymavlink import mavutil, mavwp
 from pymavlink.mavutil import mavserial
 from pyulog import ULog
 
-import Cptool.config
+from Cptool.config import toolConfig
 
 
 class GaMavlink(multiprocessing.Process):
@@ -59,7 +59,7 @@ class GaMavlink(multiprocessing.Process):
         # clear the waypoint
         self._master.waypoint_clear_all_send()
         # Pop home wp if mode is PX4
-        if Cptool.config.MODE == 'PX4':
+        if toolConfig.MODE == 'PX4':
             loader = self.trans_wp2px4(loader)
         # send the waypoint count
         self._master.waypoint_count_send(loader.count())
@@ -131,7 +131,7 @@ class GaMavlink(multiprocessing.Process):
     def log_extract_apm(msg):
         out = None
         if msg['mavpackettype'] == 'ATT':
-            if len(Cptool.config.LOG_MAP):
+            if len(toolConfig.LOG_MAP):
                 out = {
                     'TimeS': msg['TimeUS'] / 1000000,
                     'Roll': msg['Roll'],
@@ -173,7 +173,7 @@ class GaMavlink(multiprocessing.Process):
 
     @staticmethod
     def extract_from_log_file(log_file):
-        accept_item = Cptool.config.LOG_MAP
+        accept_item = toolConfig.LOG_MAP
 
         logs = mavutil.mavlink_connection(log_file)
         att = []
@@ -206,7 +206,7 @@ class GaMavlink(multiprocessing.Process):
         parm.fillna(method='ffill', inplace=True)
         parm.dropna(inplace=True)
         parm.drop_duplicates(GaMavlink.load_param().columns.to_list(), 'first', inplace=True)
-        parm = parm[['TimeS'] + Cptool.config.PARAM]
+        parm = parm[['TimeS'] + toolConfig.PARAM]
 
 
         # 进行采样，统一刷新率
@@ -349,9 +349,9 @@ class GaMavlink(multiprocessing.Process):
 
     @staticmethod
     def load_param() -> json:
-        if Cptool.config.MODE == 'Ardupilot':
+        if toolConfig.MODE == 'Ardupilot':
             path = 'Cptool/param_ardu.json'
-        elif Cptool.config.MODE == 'PX4':
+        elif toolConfig.MODE == 'PX4':
             path = 'Cptool/param_px4.json'
         with open(path, 'r') as f:
             return pd.DataFrame(json.loads(f.read()))
