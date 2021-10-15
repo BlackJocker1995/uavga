@@ -6,8 +6,8 @@ from email.mime.text import MIMEText  # 邮件文本
 
 def send_mail(title, content):
     subject = f"{title} 任务完成"  # 邮件标题
-    sender = "m13384990030@163.com"  # 发送方
-    recver = "han784851198@live.com"  # 接收方
+    sender = ""  # 发送方
+    recver = ""  # 接收方
     password = "EGHUPTWUVIZHLNLS"
     # 邮箱密码
     message = MIMEText(content, "plain", "utf-8")
