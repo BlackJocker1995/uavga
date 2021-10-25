@@ -17,7 +17,7 @@ from Cptool.config import toolConfig
 
 class GaMavlink(multiprocessing.Process):
     """
-    主要负责启动通信链接与UAV交互
+    Mainly responsible for initiating the communication link to interact with UAV
     """
 
     def __init__(self, port, msg_queue):
@@ -28,7 +28,7 @@ class GaMavlink(multiprocessing.Process):
 
     def connect(self):
         """
-        链接无人机.
+        Connect drone
         :return:
         """
         self._master = mavutil.mavlink_connection('udp:0.0.0.0:{}'.format(self._port))
@@ -42,11 +42,11 @@ class GaMavlink(multiprocessing.Process):
 
     def set_mission(self, mission_file, random: bool, timeout=30) -> bool:
         """
-        设置任务
-        :param random:
-        :param mission_file: 一个txt的任务文件路径
-        :param timeout:秒数超时
-        :return: 是否成功
+        Set mission
+        :param random: Out of order
+        :param mission_file: mission file
+        :param timeout:
+        :return: success
         """
         if not self._master:
             logging.warning('Mavlink handler is not connect!')
@@ -81,6 +81,10 @@ class GaMavlink(multiprocessing.Process):
         return True
 
     def start_mission(self):
+        """
+        Arm and start the flight
+        :return:
+        """
         if not self._master:
             logging.warning('Mavlink handler is not connect!')
             raise ValueError('Connect at first!')
@@ -88,11 +92,11 @@ class GaMavlink(multiprocessing.Process):
         self._master.arducopter_arm()
         self._master.set_mode_auto()
 
-    def set_param(self, param, value) -> None:
+    def set_param(self, param:str, value:float) -> None:
         """
-        设置某一个参数的值
-        :param param:
-        :param value:
+        set a value of specific parameter
+        :param param: name of the parameter
+        :param value: float value want to set
         """
         if not self._master:
             raise ValueError('Connect at first!')
@@ -102,18 +106,17 @@ class GaMavlink(multiprocessing.Process):
 
     def set_params(self, params_dict: dict) -> None:
         """
-        设置多个参数
-        :param params:
-        :param values:
+        set multiple parameter
+        :param params_dict: a dict consist of {parameter:values}...
         """
         for param, value in params_dict.items():
             self.set_param(param, value)
 
-    def get_param(self, param):
+    def get_param(self, param: str) -> float:
         """
-        获取无人机的一个参数
-        :param param: 名称
-        :return: 值
+        get current value of a parameter.
+        :param param: name
+        :return: value of parameter
         """
         self._master.param_fetch_one(param)
         while True:
@@ -124,11 +127,42 @@ class GaMavlink(multiprocessing.Process):
         return message['param_value']
 
     def get_msg(self, type, block=False):
+        """
+        receive the mavlink message
+        :param type:
+        :param block:
+        :return:
+        """
         msg = self._master.recv_match(type=type, blocking=block)
         return msg
 
+    def set_mode(self, mode:str):
+        """
+        Set flight mode
+        :param mode: string type of a mode, it will be convert to an int values.
+        :return:
+        """
+        if not self._master:
+            logging.warning('Mavlink handler is not connect!')
+            raise ValueError('Connect at first!')
+        mode_id = self._master.mode_mapping()[mode]
+
+        self._master.mav.set_mode_send(self._master.target_system,
+                                       mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+                                       mode_id)
+        while True:
+            message = self._master.recv_match(type='COMMAND_ACK', blocking=True).to_dict()
+            if message['command'] == mavutil.mavlink.MAVLINK_MSG_ID_SET_MODE:
+                logging.debug(f'Mode: {mode} Set successful')
+                break
+
     @staticmethod
-    def log_extract_apm(msg):
+    def log_extract_apm(msg: dict):
+        """
+        parse the msg of mavlink
+        :param msg:
+        :return:
+        """
         out = None
         if msg['mavpackettype'] == 'ATT':
             if len(toolConfig.LOG_MAP):
@@ -164,6 +198,11 @@ class GaMavlink(multiprocessing.Process):
 
     @staticmethod
     def log_extract_px4(msg):
+        """
+        parse the on-board log message of px4
+        :param msg:
+        :return:
+        """
         msg.drop(['label'], axis=1, inplace=True)
         msg = msg.fillna(0)
         msg = msg.sum()
@@ -173,6 +212,11 @@ class GaMavlink(multiprocessing.Process):
 
     @staticmethod
     def extract_from_log_file(log_file):
+        """
+        extract log message form a bin file.
+        :param log_file:
+        :return:
+        """
         accept_item = toolConfig.LOG_MAP
 
         logs = mavutil.mavlink_connection(log_file)
@@ -244,7 +288,6 @@ class GaMavlink(multiprocessing.Process):
     @staticmethod
     def read_path_specified_file(log_path, exe):
         """
-        读取目录下特定扩展名的所有文件
         :param log_path:
         :param exe:
         :return:
@@ -259,9 +302,9 @@ class GaMavlink(multiprocessing.Process):
     @staticmethod
     def extract_from_log_path(log_path, threat=None):
         """
-        将目录下的所有的.BIN转成.CSV
-        :param log_path: 日志文件路径不包含logs
-        :param threat: 启用多线程
+        extract and convert bin file to csv
+        :param log_path:
+        :param threat: multiple threat
         :return:
         """
 
@@ -295,8 +338,8 @@ class GaMavlink(multiprocessing.Process):
     @staticmethod
     def extract_from_ulog(log_file):
         """
-        将目录下的所有的ulog转成.CSV
-        :param log_path: 日志文件路径不包含logs
+        extract and convert ulog file to csv
+        :param log_path:
         :return:
         """
         # load ulog
@@ -349,6 +392,10 @@ class GaMavlink(multiprocessing.Process):
 
     @staticmethod
     def load_param() -> json:
+        """
+        load parameter we want to fuzzing
+        :return:
+        """
         if toolConfig.MODE == 'Ardupilot':
             path = 'Cptool/param_ardu.json'
         elif toolConfig.MODE == 'PX4':
@@ -358,6 +405,11 @@ class GaMavlink(multiprocessing.Process):
 
     @staticmethod
     def random_param_value(param_json: dict):
+        """
+        random create the value
+        :param param_json:
+        :return:
+        """
         out = {}
         for name, item in param_json.items():
             range = item['range']
@@ -384,11 +436,10 @@ class GaMavlink(multiprocessing.Process):
 
     def run(self):
         """
-        启动检测
+        loop check
         :return:
         """
-        # TODO: 根据消息
-        # 检查是否有链接
+
         while True:
             msg = self._master.recv_match(type=['STATUSTEXT'], blocking=False)
             if msg is not None:

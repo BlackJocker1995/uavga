@@ -58,7 +58,13 @@ class Modeling(object):
         return reframed
 
     def _series_to_supervised(self, data, n_in=1, dropnan=True):
-        # convert series to supervised learning
+        """
+        convert series to supervised learning
+        :param data:
+        :param n_in:
+        :param dropnan:
+        :return:
+        """
         n_vars = 1 if type(data) is list else data.shape[1]
         df = pd.DataFrame(data)
         cols, names = list(), list()
@@ -170,19 +176,6 @@ class Modeling(object):
             ax1 = plt.subplot()
 
             ax2 = ax1.twinx()
-
-            # if name == 'Yaw':
-            #     x += 3.3
-            # if name == 'Pitch':
-            #     x += 0.07
-            # if name == 'Roll':
-            #     x += 0.11
-            # if name == 'RatePitch':
-            #     x += 0.18
-            # if name == 'RateRoll':
-            #     x += 0.15
-            # if name == 'RateYaw':
-            #     x += 0.5
 
             ax1.plot(x, '-', label='Predicted', linewidth=2)
             ax1.plot(y, '--', label='Real', linewidth=2)
@@ -460,7 +453,7 @@ class CyTCN(Modeling):
         return model
 
     def _build_model(self, train_shape: np.shape):
-        # 创建模型
+        # create model
         model = Sequential(
             layers=[
                 TCN(input_shape=(train_shape[1], train_shape[2])),  # output.shape = (batch, 64)

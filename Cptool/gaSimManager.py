@@ -33,7 +33,7 @@ class GaSimManager(object):
 
     def start_sitl(self):
         """
-        启动软件在环 模拟器，分为PX4 和 Ardupilot
+        start the simulator
         :return:
         """
         if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin"):
@@ -58,7 +58,8 @@ class GaSimManager(object):
 
     def start_multiple_sitl(self, drone_i=0):
         """
-        启动软件在环 多个模拟器， Ardupilot
+        start multiple simulators
+        :param drone_i:
         :return:
         """
         if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin"):
@@ -75,7 +76,7 @@ class GaSimManager(object):
 
     def mav_monitor_init(self, drone_i=0):
         """
-        初始化SITL在环
+        init the SITL simulator
         :return:
         """
         if toolConfig.MODE == 'Ardupilot':
@@ -93,6 +94,10 @@ class GaSimManager(object):
         self._mav_monitor = GaMavlink(14540 + int(drone_i), self.msg_queue)
 
     def mav_monitor_error(self):
+        """
+        monitor error during the flight
+        :return:
+        """
         logging.info(f'Start error monitor.')
 
         time_out = 180
@@ -204,23 +209,23 @@ class GaSimManager(object):
 
     def mav_monitor_connect(self):
         """
-        Mavlnik连接
+        mavlink connect
         :return:
         """
         return self._mav_monitor.connect()
 
     def mav_monitor_set_mission(self, mission_file, random: bool = False):
         """
-        设置任务
-        :param mission_file:任务路径
-        :param random:任务是否乱序
+        set mission
+        :param mission_file: file path
+        :param random:
         :return:
         """
         return self._mav_monitor.set_mission(mission_file, random)
 
     def mav_monitor_set_param(self, params, values):
         """
-        初始化airsim监控器
+        set drone configuration
         :return:
         """
         for param, value in zip(params, values):
@@ -228,19 +233,23 @@ class GaSimManager(object):
 
     def mav_monitor_start_mission(self):
         """
-        开始任务
+        start mission
         :return:
         """
         self._mav_monitor.start_mission()
 
     def start_mav_monitor(self):
         """
-        启动mavlink监控进程
+        start monitor
         :return:
         """
         self._mav_monitor.start()
 
     def stop_sitl(self):
+        """
+        stop the simulator
+        :return:
+        """
         self._sitl_task.sendcontrol('c')
         time.sleep(1)
         eventlet.monkey_patch()  # 必须加这条代码

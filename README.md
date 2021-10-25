@@ -4,28 +4,32 @@ This is an approach source code of LGDFuzzer.
 ## Requirement
 Python package requirement: numpy ; pandas ; pymavlink ; pyulog ; eventlet ; keras ; tensorflow
 
+OS: The program is only test in Ubuntu 18.04.
+
 `
 pip3 install pymavlink pandas pyulog eventlet keras tensorflow
 `
 
 
-Simulation requirement: [Airsim](https://github.com/Microsoft/AirSim/releases) or [SITL](https://github.com/ArduPilot/ardupilot)
+Simulation requirement: [SITL](https://github.com/ArduPilot/ardupilot).
+The initializer of simulator needs to change the path in the file `Cptool.gaSimManager.py` with function `start_sitl` in line34.
+For example,
+`
+python3 {Your Ardupilot path}/Tools/autotest/sim_vehicle.py --location=AVC_plane --out=127.0.0.1:14550 -v ArduCopter -w -S {toolConfig.SPEED} "
+`.
+
+
 
 ## Deployment
-The configuration is in Cptool.config.py
-
-If you use the SITL, please change the start py file path at Cptool.gaSimManager.py Line-49
+The configuration is in `Cptool.config.py` and `ModelFit.config.py`
 
 
 ## Description
 
 
+`train_Lstm.py` train a model predictor.
 
-
-
-train_Lstm.py train a model predictor.
-
-lgfuzzer.oy start the fuzzing test.
+`lgfuzzer.py` start the fuzzing test.
 
 ## Other
 
