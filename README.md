@@ -37,4 +37,4 @@ Train Data Set: https://drive.google.com/drive/folders/1bbRqWWUEuyfu8mubMBMaLD_Q
 
 Video of flight test: https://youtube.com/playlist?list=PLDDY9yM5Ac0Dh5o1R40Hs8lobhD8E3yil
 
-LSTM Training data: https://drive.google.com/drive/folders/1VTKvvgNNdIG2kvr4cJ2WeiPsi3kpviaS?usp=sharing
+error flight example data log: https://drive.google.com/drive/folders/1VTKvvgNNdIG2kvr4cJ2WeiPsi3kpviaS?usp=sharing
