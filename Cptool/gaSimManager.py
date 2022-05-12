@@ -231,6 +231,13 @@ class GaSimManager(object):
         for param, value in zip(params, values):
             self._mav_monitor.set_param(param, value)
 
+    def mav_monitor_get_param(self, param):
+        """
+        get drone configuration
+        :return:
+        """
+        return self._mav_monitor.get_param(param)
+
     def mav_monitor_start_mission(self):
         """
         start mission

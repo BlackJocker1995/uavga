@@ -6,6 +6,8 @@ import time
 import numpy as np
 import pandas as pd
 
+import Cptool
+import ModelFit
 from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
 from uavga.fuzzer import LGFuzzer
@@ -44,13 +46,11 @@ if __name__ == '__main__':
         "WPNAV_ACCEL",
         "ANGLE_MAX",
     ]
-    # lgfuizzer = LGFuzzer(param, f'model/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/lstm.h5',
-    #                      f'model/{Cptool.config.MODE}//trans.pkl',
-    #                      f"./log/{Cptool.config.MODE}/csv/train.csv")
-    #
-    # lgfuizzer.run(num=3, meanshift=True)
+    lgfuizzer = LGFuzzer(param, f'model/{toolConfig.MODE}/{toolConfig.INPUT_LEN}/lstm.h5',
+                         f'model/{toolConfig.MODE}//trans.pkl',
+                         f"log/{toolConfig.MODE}/csv/train.csv")
 
-
+    lgfuizzer.run(num=3, meanshift=True)
 
 
     candidate_var, candidate_obj = LGFuzzer.return_random_n_gen(5)

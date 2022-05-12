@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 from tensorflow.python.keras.models import load_model
 
-import Cptool.config
+from ModelFit.config import mlConfig
 import ModelFit.config
 from Cptool.gaMavlink import GaMavlink
-
+from Cptool.config import toolConfig
 
 class UAVProblem(ea.Problem):
     def __init__(self, param_choice, para_dict):
@@ -40,7 +40,7 @@ class UAVProblem(ea.Problem):
         self.context_value = None
 
         # 参与fuzzing的param的数量
-        self.m = len(Cptool.config.PARAM)
+        self.m = len(toolConfig.PARAM)
         self.params = param_choice
 
     def aimFunc(self, pop):
@@ -55,23 +55,23 @@ class UAVProblem(ea.Problem):
         default_param_value = self.segment_default_value
         default_param_value = pd.concat([default_param_value] * x.shape[0])
         default_param_value[self.params] = x
-        default_param_value = pd.concat([default_param_value] * (ModelFit.config.INPUT_LEN + 1))
+        default_param_value = pd.concat([default_param_value] * (mlConfig.INPUT_LEN + 1))
 
         segment_param = default_param_value
-        segment_param = segment_param.to_numpy().reshape((x.shape[0], ModelFit.config.INPUT_LEN + 1, -1))
+        segment_param = segment_param.to_numpy().reshape((x.shape[0], mlConfig.INPUT_LEN + 1, -1))
 
         # sensor 数据
         segment_x = self.context_value
         segment_x = np.repeat(segment_x, x.shape[0])
-        segment_x = segment_x.reshape((x.shape[0], ModelFit.config.INPUT_LEN + 1, -1))
+        segment_x = segment_x.reshape((x.shape[0], mlConfig.INPUT_LEN + 1, -1))
 
         merge_value = np.concatenate([segment_x, segment_param], -1)
         # 先变二位归一化，然后再变回三维
         merge_value = self.trans.transform(merge_value.reshape(-1, merge_value.shape[2])).reshape(
-            (-1, ModelFit.config.INPUT_LEN + 1, merge_value.shape[2]))
+            (-1, mlConfig.INPUT_LEN + 1, merge_value.shape[2]))
 
-        sensor_x_param = merge_value[:, :ModelFit.config.INPUT_LEN, :]
-        sensor_y = merge_value[:, ModelFit.config.INPUT_LEN, :ModelFit.config.OUTPUT_DATA_LEN]
+        sensor_x_param = merge_value[:, :mlConfig.INPUT_LEN, :]
+        sensor_y = merge_value[:, mlConfig.INPUT_LEN, :mlConfig.OUTPUT_DATA_LEN]
 
         predict_x = self.predict_module.predict(sensor_x_param)
 

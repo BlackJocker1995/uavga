@@ -92,7 +92,7 @@ class GaMavlink(multiprocessing.Process):
         self._master.arducopter_arm()
         self._master.set_mode_auto()
 
-    def set_param(self, param:str, value:float) -> None:
+    def set_param(self, param: str, value: float) -> None:
         """
         set a value of specific parameter
         :param param: name of the parameter

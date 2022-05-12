@@ -8,7 +8,9 @@ import pandas as pd
 from sklearn.cluster import MeanShift, estimate_bandwidth
 from sklearn.decomposition import PCA
 
-import ModelFit.config
+from ModelFit.config import mlConfig
+from Cptool.config import toolConfig
+from Cptool.gaSimManager import GaSimManager
 from uavga.uavgeat import UAVProblem
 from uavga.uavgen import UAVGA
 
@@ -93,8 +95,8 @@ class LGFuzzer(object):
             pickle.dump(obj_population, f)
 
     def split_segment(self):
-        tmp = self.csv_data.to_numpy()[:, :ModelFit.config.CONTEXT_LEN]
-        return np.array(np.array_split(tmp, tmp.shape[0] // (ModelFit.config.INPUT_LEN + 1), axis=0))
+        tmp = self.csv_data.to_numpy()[:, :mlConfig.CONTEXT_LEN]
+        return np.array(np.array_split(tmp, tmp.shape[0] // (mlConfig.INPUT_LEN + 1), axis=0))
 
     @staticmethod
     def return_best_n_gen(n=1):
@@ -159,6 +161,22 @@ class LGFuzzer(object):
             candidate_objs.extend(candidate_obj)
         return candidate_vars, candidate_objs
 
+    @staticmethod
+    def reshow(params, values):
+        manager = GaSimManager(debug=toolConfig.DEBUG)
+        manager.start_multiple_sitl()
+        manager.mav_monitor_init()
+
+        manager.mav_monitor_connect()
+        manager.mav_monitor_set_mission("Cptool/mission.txt", random=True)
+
+        manager.mav_monitor_set_param(params=params, values=values)
+
+        # manager.start_mav_monitor()
+        manager.mav_monitor_start_mission()
+        result = manager.mav_monitor_error()
+
+        manager.stop_sitl()
 
 def ncolors(num):
     rgb_colors = []

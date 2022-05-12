@@ -67,3 +67,5 @@ toolConfig.PARAM = [
     "WPNAV_ACCEL",
     "ANGLE_MAX",
 ]
+# LOG_MAP = ['ATT', 'RATE']
+toolConfig.INPUT_LEN = 3
