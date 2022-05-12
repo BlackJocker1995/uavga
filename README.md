@@ -1,4 +1,4 @@
-# uavga
+# LGFuzzer
 This is an approach source code of LGDFuzzer.
 
 ## Requirement
