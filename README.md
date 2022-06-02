@@ -19,17 +19,21 @@ python3 {Your Ardupilot path}/Tools/autotest/sim_vehicle.py --location=AVC_plane
 `.
 
 
-
 ## Deployment
 The configuration is in `Cptool.config.py` and `ModelFit.config.py`
 
 
 ## Description
 
+`1.trans_bin2csv.py` transform the bin file to csv.
 
-`train_Lstm.py` train a model predictor.
+`2.train_Lstm.py` train a model predictor.
 
-`lgfuzzer.py` start the fuzzing test.
+`3.lgfuzzer.py` start the fuzzing test.
+
+`4.validate.py` validate configurations through simulator.
+
+`5.range.py` summary range guideline by validated result.
 
 ## Other
 

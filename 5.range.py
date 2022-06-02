@@ -27,7 +27,7 @@ if __name__ == '__main__':
         "WPNAV_ACCEL",
         "ANGLE_MAX"
     ]
-
+    # Validate Result
     result_data = pd.read_csv('result/params_test1.csv', header=0)
     ga = ANAGA(param, result_data)
     ga.run()

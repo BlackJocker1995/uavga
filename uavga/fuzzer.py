@@ -32,7 +32,7 @@ class LGFuzzer(object):
 
         # read csv
         data = pd.read_csv(model_csv, header=0, index_col=0)
-        self.csv_data = data.iloc[2:100]
+        self.csv_data = data
 
     def random_choie_meanshift(self, segment_csv, rate=0.25):
         data_class = segment_csv.reshape(
