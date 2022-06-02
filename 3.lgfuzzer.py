@@ -15,15 +15,6 @@ from uavga.fuzzer import LGFuzzer
 # from Cptool.gaSimManager import GaSimManager
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Personal information')
-    parser.add_argument('--device', dest='device', type=str, help='Name of the candidate')
-    args = parser.parse_args()
-    device = args.device
-
-    if device is None:
-        device = 0
-    print(device)
-
     # The parameters you want to fuzzing, they must be corresponding to the predictor had.
     param = [
         "PSC_POSXY_P",
