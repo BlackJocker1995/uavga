@@ -33,6 +33,8 @@ The configuration is in `Cptool.config.py` and `ModelFit.config.py`
 
 `4.validate.py` validate configurations through simulator.
 
+If you want to validate with multiple simulator, you can use validate.py -- device {xxx} to start SITL
+
 `5.range.py` summary range guideline by validated result.
 
 ## Other

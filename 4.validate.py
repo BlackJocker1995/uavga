@@ -72,9 +72,9 @@ if __name__ == '__main__':
                 continue
             data = pd.read_csv(f'result/params.csv')
             exit_data = data.drop(['score', 'result'], axis=1, inplace=False)
-        # carry our simulation test
-        if ((exit_data - value_vector).sum(axis=1).abs() < 0.00001).sum() > 0:
-            continue
+            # carry our simulation test
+            if ((exit_data - value_vector).sum(axis=1).abs() < 0.00001).sum() > 0:
+                continue
 
         # start multiple SITL
         manager.start_multiple_sitl(device)

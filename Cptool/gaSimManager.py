@@ -82,7 +82,7 @@ class GaSimManager(object):
         if toolConfig.MODE == 'Ardupilot':
             while True:
                 line = self._sitl_task.readline()
-                if line.startswith('APM: EKF2 IMU0 is using GPS'):
+                if "IMU0 is using GPS" in line:
                     break
                 # if line.startswith('APM: GPS 1: detected as'):
                 #     break
