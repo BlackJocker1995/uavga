@@ -30,14 +30,14 @@ if __name__ == '__main__':
         "PSC_VELXY_P",
         "PSC_POSZ_P",
         "ATC_ANG_RLL_P",
-        "ATC_ANG_PIT_P",
-        "ATC_ANG_YAW_P",
         "ATC_RAT_RLL_I",
         "ATC_RAT_RLL_D",
         "ATC_RAT_RLL_P",
+        "ATC_ANG_PIT_P",
         "ATC_RAT_PIT_P",
         "ATC_RAT_PIT_I",
         "ATC_RAT_PIT_D",
+        "ATC_ANG_YAW_P",
         "ATC_RAT_YAW_P",
         "ATC_RAT_YAW_I",
         "ATC_RAT_YAW_D",
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         "WPNAV_SPEED_UP",
         "WPNAV_SPEED_DN",
         "WPNAV_ACCEL",
-        "ANGLE_MAX",
+        "ANGLE_MAX"
     ]
 
     # Get Fuzzing result and validate
