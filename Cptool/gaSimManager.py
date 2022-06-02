@@ -1,3 +1,6 @@
+"""
+SimManager Version: 1.2
+"""
 import logging
 import math
 import multiprocessing
@@ -23,7 +26,6 @@ class GaSimManager(object):
         self._mav_monitor: GaMavlink = None
         self._even = None
         self.msg_queue = multiprocessing.Queue()
-
 
         if debug:
             logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
@@ -259,18 +261,12 @@ class GaSimManager(object):
         :return:
         """
         self._sitl_task.sendcontrol('c')
-        time.sleep(1)
-        eventlet.monkey_patch()  # 必须加这条代码
-        with eventlet.Timeout(5, False):  # 设置超时时间为2秒
-            while True:
-                line = self._sitl_task.readline()
-                if line.startswith('SIM_VEHICLE: Killing tasks'):
-                    break
-        logging.info('Stop SITL task.')
+        while True:
+            line = self._sitl_task.readline()
+            if not line:
+                break
         self._sitl_task.close(force=True)
-        while not self._sitl_task.isalive:
-            continue
-        logging.debug('Send mavclosed to Airsim.')
+        logging.info('Stop SITL task.')
 
     def get_mav_monitor(self):
         return self._mav_monitor
