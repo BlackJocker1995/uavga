@@ -15,6 +15,7 @@ from pymavlink import mavextra, mavwp
 from Cptool.gaMavlink import GaMavlink
 from Cptool.config import toolConfig
 
+
 class GaSimManager(object):
 
     def __init__(self, debug: bool = False):
