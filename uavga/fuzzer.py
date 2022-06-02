@@ -11,6 +11,7 @@ from sklearn.decomposition import PCA
 from ModelFit.config import mlConfig
 from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
+from range.rangegen import ANAGA
 from uavga.uavgeat import UAVProblem
 from uavga.uavgen import UAVGA
 
@@ -31,14 +32,11 @@ class LGFuzzer(object):
 
         # read csv
         data = pd.read_csv(model_csv, header=0, index_col=0)
-        self.csv_data = data
+        self.csv_data = data.iloc[2:100]
 
     def random_choie_meanshift(self, segment_csv, rate=0.25):
         data_class = segment_csv.reshape(
                 (-1, segment_csv.shape[1] * segment_csv.shape[2]))
-
-
-
         bandwidth = estimate_bandwidth(data_class, quantile=rate)
         clf = MeanShift(bandwidth=bandwidth, bin_seeding=True)
 
@@ -96,7 +94,11 @@ class LGFuzzer(object):
 
     def split_segment(self):
         tmp = self.csv_data.to_numpy()[:, :mlConfig.CONTEXT_LEN]
-        return np.array(np.array_split(tmp, tmp.shape[0] // (mlConfig.INPUT_LEN + 1), axis=0))
+        # To prevent unbalanced
+        tmp = tmp[:-(tmp.shape[0] % (mlConfig.INPUT_LEN + 1)), :]
+        # Split
+        tmp_split = np.array_split(tmp, tmp.shape[0] // (mlConfig.INPUT_LEN + 1), axis=0)
+        return np.array(tmp_split)
 
     @staticmethod
     def return_best_n_gen(n=1):
@@ -177,6 +179,7 @@ class LGFuzzer(object):
         result = manager.mav_monitor_error()
 
         manager.stop_sitl()
+
 
 def ncolors(num):
     rgb_colors = []

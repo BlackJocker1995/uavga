@@ -24,6 +24,7 @@ if __name__ == '__main__':
         device = 0
     print(device)
 
+    # The parameters you want to fuzzing, they must be corresponding to the predictor had.
     param = [
         "PSC_POSXY_P",
         "PSC_VELXY_P",
@@ -46,38 +47,36 @@ if __name__ == '__main__':
         "WPNAV_ACCEL",
         "ANGLE_MAX",
     ]
-    lgfuizzer = LGFuzzer(param, f'model/{toolConfig.MODE}/{toolConfig.INPUT_LEN}/lstm.h5',
-                         f'model/{toolConfig.MODE}//trans.pkl',
-                         f"log/{toolConfig.MODE}/csv/train.csv")
 
-    lgfuizzer.run(num=3, meanshift=True)
-
-
+    # Get Fuzzing result and validate
     candidate_var, candidate_obj = LGFuzzer.return_random_n_gen(5)
     candidate_obj = np.array(candidate_obj, dtype=float).round(8)
     candidate_var = np.array(candidate_var, dtype=float).round(8)
 
+    # Simulator validation
     manager = GaSimManager(debug=toolConfig.DEBUG)
 
     results = []
     i = 0
-    # 乱序
+    # Random order
     rand_index = (np.arange(candidate_obj.shape[0]))
     np.random.shuffle(rand_index)
     candidate_obj = candidate_obj[rand_index]
     candidate_var = candidate_var[rand_index]
 
+    # Loop to validate configurations with SITL simulator
     for index, vars, value_vector in zip(np.arange(candidate_obj.shape[0]), candidate_var, candidate_obj):
-        # if skip
+        # if exist file, append new data in the end.
         if os.path.exists(f'result/params.csv'):
             while not os.access(f"result/params.csv", os.R_OK):
                 continue
             data = pd.read_csv(f'result/params.csv')
             exit_data = data.drop(['score', 'result'], axis=1, inplace=False)
+        # carry our simulation test
         if ((exit_data - value_vector).sum(axis=1).abs() < 0.00001).sum() > 0:
             continue
 
-
+        # start multiple SITL
         manager.start_multiple_sitl(device)
         manager.mav_monitor_init(device)
 
@@ -88,9 +87,9 @@ if __name__ == '__main__':
         manager.mav_monitor_set_param(params=param, values=value_vector)
 
         print(f'======================={index} / {candidate_obj.shape[0]} ==========================')
-        # manager.start_mav_monitor()
         manager.mav_monitor_start_mission()
         result = manager.mav_monitor_error()
+        # if the result have no instability, skip.
         if result == 'skip':
             results.append(result)
         else:
@@ -101,6 +100,7 @@ if __name__ == '__main__':
             else:
                 while not os.access(f"result/params.csv", os.W_OK):
                     continue
+                # Add instability resutl
                 tmp_row = value_vector.tolist()
                 tmp_row.append(vars[0])
                 tmp_row.append(result)
@@ -114,4 +114,5 @@ if __name__ == '__main__':
         i += 1
 
     localtime = time.asctime(time.localtime(time.time()))
+    # Mail notification plugin
     # send_mail(Cptool.config.AIRSIM_PATH, localtime)
