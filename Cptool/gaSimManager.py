@@ -82,19 +82,16 @@ class GaSimManager(object):
         init the SITL simulator
         :return:
         """
+        self._mav_monitor = GaMavlink(14540 + int(drone_i), self.msg_queue)
+        self.mav_monitor.connect()
         if toolConfig.MODE == 'Ardupilot':
-            while True:
-                line = self._sitl_task.readline()
-                if "IMU0 is using GPS" in line:
-                    break
-                # if line.startswith('APM: GPS 1: detected as'):
-                #     break
+            if self.mav_monitor.ready2fly():
+                return True
         elif toolConfig.MODE == 'PX4':
             while True:
                 line = self._sitl_task.readline()
                 if 'notify negative' in line:
                     break
-        self._mav_monitor = GaMavlink(14540 + int(drone_i), self.msg_queue)
 
     def mav_monitor_error(self):
         """
