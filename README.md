@@ -4,7 +4,7 @@ This is an approach source code of LGDFuzzer.
 ## Requirement
 Python package requirement: numpy ; pandas ; pymavlink ; pyulog ; eventlet ; keras ; tensorflow
 
-OS: The program is only test in Ubuntu 18.04.
+OS: The program is only test in Ubuntu 18.04 nad 20.04.
 
 `
 pip3 install pymavlink pandas pyulog eventlet keras tensorflow
