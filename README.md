@@ -1,4 +1,4 @@
-# LGFuzzer
+# LGDFuzzer
 This is an approach source code of LGDFuzzer.
 
 ## Requirement
