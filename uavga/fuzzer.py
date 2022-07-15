@@ -8,7 +8,6 @@ import pandas as pd
 from sklearn.cluster import MeanShift, estimate_bandwidth
 from sklearn.decomposition import PCA
 
-from ModelFit.config import mlConfig
 from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
 from range.rangegen import ANAGA
@@ -71,8 +70,8 @@ class LGFuzzer(object):
 
     def run(self, num=0, meanshift=False):
         """
-        开始fuzzing搜索
-        :param num: 返回的候选的个数
+        Start Fuzzing
+        :param num: The number of returned pop
         :return:
         """
         segment_csv = self.split_segment()
@@ -93,11 +92,11 @@ class LGFuzzer(object):
             pickle.dump(obj_population, f)
 
     def split_segment(self):
-        tmp = self.csv_data.to_numpy()[:, :mlConfig.CONTEXT_LEN]
+        tmp = self.csv_data.to_numpy()[:, :toolConfig.CONTEXT_LEN]
         # To prevent unbalanced
-        tmp = tmp[:-(tmp.shape[0] % (mlConfig.INPUT_LEN + 1)), :]
+        tmp = tmp[:-(tmp.shape[0] % (toolConfig.INPUT_LEN + 1)), :]
         # Split
-        tmp_split = np.array_split(tmp, tmp.shape[0] // (mlConfig.INPUT_LEN + 1), axis=0)
+        tmp_split = np.array_split(tmp, tmp.shape[0] // (toolConfig.INPUT_LEN + 1), axis=0)
         return np.array(tmp_split)
 
     @staticmethod

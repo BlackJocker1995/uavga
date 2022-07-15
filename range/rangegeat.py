@@ -4,7 +4,7 @@ import geatpy as ea
 import pickle
 import pandas as pd
 
-from Cptool.gaMavlink import GaMavlink
+from Cptool.gaMavlink import GaMavlinkAPM
 
 
 class ANAProblem(ea.Problem):

@@ -8,7 +8,7 @@ from tensorflow.python.keras.models import load_model
 
 from ModelFit.config import mlConfig
 import ModelFit.config
-from Cptool.gaMavlink import GaMavlink
+from Cptool.gaMavlink import GaMavlinkAPM
 from Cptool.config import toolConfig
 
 class UAVProblem(ea.Problem):
@@ -17,10 +17,10 @@ class UAVProblem(ea.Problem):
         self.sub_parr_dict = para_dict[param_choice]
 
         # sub 的数据
-        self.step_unit = GaMavlink.read_unit_from_dict(self.sub_parr_dict)
-        sub_value_range = GaMavlink.read_range_from_dict(self.sub_parr_dict)
+        self.step_unit = GaMavlinkAPM.read_unit_from_dict(self.sub_parr_dict)
+        sub_value_range = GaMavlinkAPM.read_range_from_dict(self.sub_parr_dict)
         # general 的数据 装欢成lstm输入的长度
-        default_value = GaMavlink.get_default_values(para_dict).loc[['default']]
+        default_value = GaMavlinkAPM.get_default_values(para_dict).loc[['default']]
         self.segment_default_value = pd.DataFrame(default_value, dtype=np.float)
 
         name = 'UAVProblem'  # 初始化name（函数名称，可以随意设置）boundary
@@ -146,6 +146,6 @@ class UAVProblem(ea.Problem):
         :param param:
         :return:
         """
-        para_dict = GaMavlink.load_param()
-        step_unit = GaMavlink.read_unit_from_dict(para_dict)
+        para_dict = GaMavlinkAPM.load_param()
+        step_unit = GaMavlinkAPM.read_unit_from_dict(para_dict)
         return param * step_unit

@@ -15,7 +15,7 @@ import pexpect
 from pexpect import spawn
 from pymavlink import mavextra, mavwp
 
-from Cptool.gaMavlink import GaMavlink
+from Cptool.gaMavlink import GaMavlinkAPM
 from Cptool.config import toolConfig
 
 
@@ -23,7 +23,7 @@ class GaSimManager(object):
 
     def __init__(self, debug: bool = False):
         self._sitl_task = None
-        self._mav_monitor: GaMavlink = None
+        self._mav_monitor: GaMavlinkAPM = None
         self._even = None
         self.msg_queue = multiprocessing.Queue()
 
@@ -82,7 +82,7 @@ class GaSimManager(object):
         init the SITL simulator
         :return:
         """
-        self._mav_monitor = GaMavlink(14540 + int(drone_i), self.msg_queue)
+        self._mav_monitor = GaMavlinkAPM(14540 + int(drone_i), self.msg_queue)
         self.mav_monitor.connect()
         if toolConfig.MODE == 'Ardupilot':
             if self.mav_monitor.ready2fly():

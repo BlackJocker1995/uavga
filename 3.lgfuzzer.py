@@ -39,7 +39,7 @@ if __name__ == '__main__':
         "ANGLE_MAX"
     ]
     # Initialize the fuzzer
-    lgfuizzer = LGFuzzer(param, f'model/{toolConfig.MODE}/{toolConfig.INPUT_LEN}/lstm.h5',
+    lgfuizzer = LGFuzzer(param, f'model/{toolConfig.MODE}/{toolConfig.INPUT_LEN}_{toolConfig.OUTPUT_LEN}/lstm.h5',
                          f'model/{toolConfig.MODE}//trans.pkl',
                          f"log/{toolConfig.MODE}/csv/test.csv")
     # Run the fuzzing test

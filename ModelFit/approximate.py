@@ -8,28 +8,28 @@ from abc import abstractmethod
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from dtaidistance import dtw_ndim
 from keras.layers import Dense, Dropout, RepeatVector
 from keras.layers import LSTM
 from keras.models import Sequential
+from numpy.lib.stride_tricks import sliding_window_view
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from tcn import TCN
 from tensorflow.python.keras.models import load_model
+from tqdm import tqdm
 
 from Cptool.config import toolConfig
-from ModelFit.config import mlConfig
+from Cptool.mavtool import min_max_scaler_param, min_max_scaler
 
 
 class Modeling(object):
     def __init__(self, resize: bool = True, debug: bool = False):
         self._model: Sequential = None
-        self._trans: MinMaxScaler = None
-        if toolConfig.MODE == 'Ardupilot':
-            self._uav_class = 'Ardupilot'
-        elif toolConfig.MODE == 'PX4':
-            self._uav_class = 'PX4'
+        self.trans: MinMaxScaler = None
+        self._uav_class = toolConfig.MODE
         self._resize = resize
-
+        self.in_out = f"{toolConfig.INPUT_LEN}_{toolConfig.OUTPUT_LEN}"
         if debug:
             logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                                 level=logging.DEBUG)
@@ -43,21 +43,20 @@ class Modeling(object):
         values = values.astype('float32')
 
         # normalize features
-
-        if mlConfig.RETRANS:
-            trans = self.load_trans()
-
-            values = trans.transform(values)
+        if toolConfig.RETRANS:
+            if self.trans is None:
+                self.trans = self.load_trans()
+            values = min_max_scaler(self.trans, values)
 
         # frame as supervised learning
-        reframed = self._series_to_supervised(values, mlConfig.INPUT_LEN, True)
+        reframed = self._series_to_supervised(values, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN, True)
 
-        if not os.path.exists('model/{}/{}'.format(self._uav_class, mlConfig.INPUT_LEN)):
-            os.makedirs('model/{}/{}'.format(self._uav_class, mlConfig.INPUT_LEN))
+        if not os.path.exists('model/{}/{}_{}'.format(self._uav_class, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN)):
+            os.makedirs('model/{}/{}_{}'.format(self._uav_class, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN))
 
         return reframed
 
-    def _series_to_supervised(self, data, n_in=1, dropnan=True):
+    def _series_to_supervised(self, data, n_in=1, n_out=1, dropnan=True):
         """
         convert series to supervised learning
         :param data:
@@ -73,7 +72,7 @@ class Modeling(object):
             cols.append(df.shift(i))
             names += [('var%d(t-%d)' % (j + 1, i)) for j in range(n_vars)]
         # forecast sequence (t, t+1, ... t+n)
-        for i in range(0, 1):
+        for i in range(0, n_out):
             cols.append(df.shift(-i))
             if i == 0:
                 names += [('var%d(t)' % (j + 1)) for j in range(n_vars)]
@@ -89,7 +88,7 @@ class Modeling(object):
 
     def _train_valid_split(self, values):
         # split into train and test sets
-        X, Y = self._data_split(values)
+        X, Y = self.data_split(values)
         train_X, valid_X, train_Y, valid_Y = train_test_split(X, Y, test_size=0.2, random_state=0)
 
         logging.info(f"Shape: {train_X.shape}, {train_Y.shape}, {valid_X.shape}, {valid_Y.shape}")
@@ -97,12 +96,37 @@ class Modeling(object):
         return train_X, train_Y, valid_X, valid_Y
 
     def _test_split(self, values):
-        X, Y = self._data_split(values)
+        X, Y = self.data_split(values)
         logging.info(f"Shape: {X.shape}, {Y.shape}")
         return X, Y
 
+    def read_trans(self):
+        self.trans = self.load_trans()
+
+    def extract_feature(self, dir):
+        file_list = []
+        for filename in os.listdir(dir):
+            if filename.endswith(".csv"):
+                file_list.append(filename)
+        file_list.sort()
+
+        pd_array = None
+        for index, filename in enumerate(file_list):
+            # Read file
+            data = pd.read_csv(f"{dir}/{filename}")
+            data = data.drop(["TimeS"], axis=1)
+            # extract patch
+            values = data.values
+            values = self._cs_to_sl(values)
+            # if first
+            if index == 0:
+                pd_array = values
+            else:
+                pd_array = pd.concat([pd_array, values])
+        return pd_array
+
     @abstractmethod
-    def _data_split(self, value):
+    def data_split(self, value):
         pass
 
     @abstractmethod
@@ -113,20 +137,15 @@ class Modeling(object):
     def _build_model(self, train_shape: np.shape):
         return None
 
+    @abstractmethod
+    def read_model(self):
+        pass
+
     def set_model(self, path):
         local = os.getcwd()
         self._model = load_model(f"{local}/{path}")
 
-    def run(self, train_filename, cuda: bool = False):
-        if not cuda:
-            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-        # load dataset
-        dataset = pd.read_csv(train_filename, header=0, index_col=0)
-
-        values = dataset.values
-
-        values = self._cs_to_sl(values)
+    def train(self, values, cuda: bool = False):
         train_X, train_y, valid_X, valid_y = self._train_valid_split(values)
         model = self._fit_network(train_X, train_y, valid_X, valid_y)
         self._model = model
@@ -138,21 +157,44 @@ class Modeling(object):
 
         predict_X = self._model.predict(values)
         # data retrans
-        if mlConfig.RETRANS:
+        if toolConfig.RETRANS:
             trans = self.load_trans()
+            # trans
             predict_X = trans.inverse_transform(predict_X)
 
         return predict_X
+
+    def status2feature(self, status_data):
+        # extract patch
+        if "TimeS" in status_data.columns:
+            status_data = status_data.drop(["TimeS"], axis=1)
+        values = status_data.values
+        values = self._cs_to_sl(values)
+        return values
+
+    def predict_feature(self, feature_data):
+        """
+        predict feature which has been pre-processed
+        :param feature_data:
+        :return:
+        """
+        if self._model is None:
+            logging.warning('Model is not trained!')
+            raise ValueError('Train or load model at first')
+        # predict each status
+        predict_feature = self._model.predict(feature_data)
+
+        return predict_feature
 
     def test_cmp_draw(self, test, cmp_name, num=150, exec='pdf'):
         if self._model is None:
             logging.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
-        if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}'):
-            os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}')
+        if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}'):
+            os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}')
 
         values = self._cs_to_sl(test)
-        X, Y = self._data_split(values)
+        X, Y = self.data_split(values)
 
         predict_y = self._model.predict(X)
         # if self._resize:
@@ -162,15 +204,15 @@ class Modeling(object):
 
         if X.shape[0] > num:
             col = self._systematicSampling(X, num)
-            #col = np.arange(200, 400)
+            # col = np.arange(200, 400)
             predict_y = predict_y[col, :]
             test = Y[col, :]
         else:
             test = Y
         # 'AccX', 'AccY', 'AccZ',
-        for name, i in zip(['Roll', 'Pitch', 'Yaw', 'RateRoll', 'RatePitch', 'RateYaw',], range(6)):
-            x = predict_y[:,  i]
-            y = test[:,  i]
+        for name, i in zip(['Roll', 'Pitch', 'Yaw', 'RateRoll', 'RatePitch', 'RateYaw', ], range(6)):
+            x = predict_y[:, i]
+            y = test[:, i]
 
             fig = plt.figure(figsize=(8, 5))
             ax1 = plt.subplot()
@@ -201,7 +243,7 @@ class Modeling(object):
 
             plt.margins(0, 0)
             # plt.gcf().subplots_adjust(bottom=0.12)
-            plt.savefig(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}/{name.lower()}.{exec}')
+            plt.savefig(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}/{name.lower()}.{exec}')
             # plt.show()
             plt.clf()
 
@@ -209,10 +251,11 @@ class Modeling(object):
         if self._model is None:
             logging.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
-        if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}'):
-            os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/{cmp_name}')
+        if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}'):
+            os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}')
 
-        for name, i in zip(['AccX', 'AccY', 'AccZ', 'Roll', 'Pitch', 'Yaw', 'RateRoll', 'RatePitch', 'RateYaw',], range(9)):
+        for name, i in zip(['AccX', 'AccY', 'AccZ', 'Roll', 'Pitch', 'Yaw', 'RateRoll', 'RatePitch', 'RateYaw', ],
+                           range(9)):
             x = X[:, i]
             y = Y[:, i]
 
@@ -244,7 +287,9 @@ class Modeling(object):
 
             plt.margins(0, 0)
             plt.gcf().subplots_adjust(bottom=0.12)
-            plt.savefig(f'{os.getcwd()}/fig/{Cptool.config.MODE}/{ModelFit.config.INPUT_LEN}/{cmp_name}/{name.lower()}.{exec}', dpi=300)
+            plt.savefig(
+                f'{os.getcwd()}/fig/{toolConfig.MODE}/{toolConfig.INPUT_LEN}/{cmp_name}/{name.lower()}.{exec}',
+                dpi=300)
             # plt.show()
             plt.clf()
 
@@ -259,11 +304,11 @@ class Modeling(object):
 
         values = self._cs_to_sl(values)
 
-        X, Y = self._data_split(values)
+        X, Y = self.data_split(values)
 
         for i in range(5):
             _, X_other, _, y_other = train_test_split(X, Y, test_size=0.2, random_state=5 + i,
-                                                                  shuffle=False, stratify=None)
+                                                      shuffle=False, stratify=None)
             X_valid, X_test, y_valid, y_test = train_test_split(X_other, y_other, test_size=0.2, random_state=5 + i,
                                                                 shuffle=True, stratify=None)
 
@@ -277,9 +322,7 @@ class Modeling(object):
         if not cuda:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
         # load dataset
-        values = test_data.values
-        values = self._cs_to_sl(values)
-        test_X, test_Y = self._test_split(values)
+        test_X, test_Y = self.data_split(test_data)
 
         start = time.time()
         self._model.predict(test_X)
@@ -312,18 +355,17 @@ class Modeling(object):
         return out_index
 
     @staticmethod
-    def fit_trans(train_filename):
-        if not os.path.exists(f'model/{toolConfig.MODE}/{mlConfig.INPUT_LEN}'):
-            os.makedirs(f'model/{toolConfig.MODE}/{mlConfig.INPUT_LEN}')
+    def fit_trans(pd_csv):
+        values = pd_csv.values
 
-        # load dataset
-        dataset = pd.read_csv(train_filename, header=0, index_col=0)
+        status_value = values[:, :toolConfig.STATUS_LEN]
 
-        values = dataset.values
-
+        # fit
         trans = MinMaxScaler(feature_range=(0, 1))
-        trans.fit(values)
-
+        trans.fit(status_value)
+        # save
+        if not os.path.exists(f"model/{toolConfig.MODE}"):
+            os.makedirs(f"model/{toolConfig.MODE}")
         with open(f'model/{toolConfig.MODE}/trans.pkl', 'wb') as f:
             pickle.dump(trans, f)
 
@@ -334,26 +376,96 @@ class Modeling(object):
             trans = pickle.load(f)
         return trans
 
+    @staticmethod
+    def series2segment_predict(data, has_param=False, dropnan=True):
+        """
+        trans a numpy array data to segments. like (6, 32) to 3 (4,32) e.g., (3, 4, 32)
+        :param has_param:
+        :param data:
+        :param dropnan:
+        :return:
+        """
+
+        # convert series to supervised learning
+        df = pd.DataFrame(data)
+        cols, names = list(), list()
+        # input sequence (t-n, ... t-1)
+        for i in range(toolConfig.INPUT_LEN - 1, -1, -1):
+            cols.append(df.shift(i))
+
+        # put it all together
+        agg = pd.concat(cols, axis=1)
+        # drop rows with NaN values
+        if dropnan:
+            agg.dropna(inplace=True)
+        return agg.to_numpy().reshape((-1, toolConfig.INPUT_LEN, toolConfig.DATA_LEN))
+
+    @classmethod
+    def cal_patch_deviation(cls, predicted_data, status_data):
+        """
+        calculate matrix deviation between status_data and predicted data
+        :param status_data: real flight status data
+        :param predicted_data: predicted data
+        :return: status_deviation result which has been normalized
+        """
+        # if len(predicted_data.shape) > 2:
+        #     predicted_data = predicted_data.reshape([predicted_data.shape[0], predicted_data.shape[2]])
+        #     status_data = status_data.reshape([status_data.shape[0], status_data.shape[2]])
+        deviation = np.abs(status_data - predicted_data)
+        if len(predicted_data.shape) == 3:
+            sliding_patch = sliding_window_view(deviation, 6, axis=1).astype(dtype=np.double)
+            loss = sliding_patch.sum(axis=tuple(range(2, 4)))
+        else:
+            sliding_patch = sliding_window_view(deviation, 6, axis=0).astype(dtype=np.double)
+            loss = sliding_patch.sum(axis=1).sum(axis=1)
+        # predicted_data = sliding_window_view(predicted_data, 6, axis=0).astype(dtype=np.double)
+        # status_data = sliding_window_view(status_data, 6, axis=0).astype(dtype=np.double)
+        # Dynamic Time Warping (DTW) distance
+        # loss = []
+        # for predicted_item, status_item in zip(predicted_data, status_data):
+        #     loss.append(dtw_ndim.distance_fast(predicted_item, status_item))
+        # loss = np.average(np.array(loss))
+        return loss
+
+    @classmethod
+    def loss_discriminate(cls, patch_deviation: np.ndarray, loss_patch_size=5) -> np.ndarray:
+        patch_array = sliding_window_view(patch_deviation, loss_patch_size, axis=0)
+        patch_array_loss = patch_array.sum(axis=1).sum(axis=1)
+        return patch_array_loss
+
+    def cal_average_loss(self, status_data):
+        # create predicted status of this status patch
+        predicted_data = self.predict(status_data)
+        # calculate deviation between real and predicted
+        patch_deviation = self.cal_patch_deviation(status_data, predicted_data)
+
+        # average
+        average_loss = patch_deviation.sum()
+
 
 class CyLSTM(Modeling):
-    def __init__(self, epochs: int, batch_size: int,debug: bool = False):
+    def __init__(self, epochs: int, batch_size: int, debug: bool = False):
         super(CyLSTM, self).__init__(batch_size, debug)
 
         # param
         self.epochs = epochs
         self.batch_size: int = batch_size
 
-    def _data_split(self, value):
-        values = value.values
+    def data_split(self, values):
+        values = values.values
 
         # split into input and outputs
-        X, Y = values[:,
-               : -mlConfig.DATA_LEN], \
-               values[:, -mlConfig.DATA_LEN: -mlConfig.DATA_LEN + mlConfig.OUTPUT_DATA_LEN]
+        X = values[:, :toolConfig.INPUT_DATA_LEN]
+        # cut off parameter value in y
+        y = values[:, toolConfig.INPUT_DATA_LEN:]
+        # To 3D
+        y = y.reshape((y.shape[0], toolConfig.OUTPUT_LEN, -1))
+        # Reduce parameter length and reshape to 2D
+        Y = y[:, :, :-toolConfig.PARAM_LEN].reshape((y.shape[0], toolConfig.OUTPUT_DATA_LEN))
 
         # reshape input to be 3D [samples, timesteps, features]
-        X = X.reshape((X.shape[0], mlConfig.INPUT_LEN, mlConfig.DATA_LEN))
-        Y = Y.reshape((Y.shape[0], mlConfig.OUTPUT_DATA_LEN))
+        X = X.reshape((X.shape[0], toolConfig.INPUT_LEN, toolConfig.DATA_LEN))
+        Y = Y.reshape((Y.shape[0], toolConfig.OUTPUT_DATA_LEN))
 
         return X, Y
 
@@ -368,13 +480,12 @@ class CyLSTM(Modeling):
                             validation_data=(valid_X, valid_Y),
                             verbose=2,
                             shuffle=True)
-
         if num is not None:
-            model.save(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/lstm{num}.h5')
+            model.save(f'model/{self._uav_class}/{self.in_out}/lstm{num}.h5')
             plt.plot(history.history['loss'], label=f'train-{num}')
             plt.plot(history.history['val_loss'], label=f'validation-{num}')
         else:
-            model.save(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/lstm.h5')
+            model.save(f'model/{self._uav_class}/{self.in_out}/lstm.h5')
             plt.plot(history.history['loss'], label='train')
             plt.plot(history.history['val_loss'], label='validation')
         # plot history
@@ -383,22 +494,41 @@ class CyLSTM(Modeling):
         plt.xlabel('Epochs Time', fontsize=18)
         plt.legend(prop=axis_font)
         # plt.show()
-        plt.savefig(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/loss.pdf')
+        plt.savefig(f'model/{self._uav_class}/{self.in_out}/loss.pdf')
         return model
 
     def _build_model(self, train_shape: np.shape):
         model = Sequential()
         model.add(LSTM(128, input_shape=(train_shape[1], train_shape[2])))
         model.add(Dropout(0.1))
-        model.add(Dense(128, activation='relu'))
-        model.add(Dense(mlConfig.OUTPUT_DATA_LEN))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dropout(0.1))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(toolConfig.OUTPUT_DATA_LEN))
         model.compile(loss='mean_squared_error', optimizer='adam', metrics=['accuracy', 'mse'])
         model.summary()
 
         return model
 
     def read_model(self):
-        self._model = load_model(f'model/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/lstm.h5')
+        self._model = load_model(f'model/{toolConfig.MODE}/{self.in_out}/lstm.h5')
+
+    @classmethod
+    def merge_file_data(cls, dir):
+        file_list = []
+        for filename in os.listdir(dir):
+            if filename.endswith(".csv"):
+                file_list.append(filename)
+        file_list.sort()
+
+        col_name = pd.read_csv(f"{dir}/{file_list[0]}").columns
+        pd_csv = pd.DataFrame(columns=col_name)
+
+        for filename in tqdm(file_list):
+            data = pd.read_csv(f"{dir}/{filename}")
+            pd_csv = pd.concat([pd_csv, data])
+        # remove Times
+        return pd_csv.drop(["TimeS"], axis=1)
 
 
 class CyTCN(Modeling):
@@ -409,17 +539,21 @@ class CyTCN(Modeling):
         self.epochs = epochs
         self.batch_size: int = batch_size
 
-    def _data_split(self, value):
+    def data_split(self, value):
         values = value.values
 
         # split into input and outputs
-        X, Y = values[:, :-mlConfig.DATA_LEN], \
-               values[:, mlConfig.INPUT_LEN * mlConfig.DATA_LEN :
-                         mlConfig.INPUT_LEN * mlConfig.DATA_LEN + mlConfig.OUTPUT_DATA_LEN]
+        X = values[:, :toolConfig.INPUT_DATA_LEN]
+        # cut off parameter value in y
+        y = values[:, toolConfig.INPUT_DATA_LEN:]
+        # To 3D
+        y = y.reshape((y.shape[0], toolConfig.OUTPUT_LEN, -1))
+        # Reduce parameter length and reshape to 2D
+        Y = y[:, :, :-toolConfig.PARAM_LEN].reshape((y.shape[0], toolConfig.OUTPUT_DATA_LEN))
 
         # reshape input to be 3D [samples, timesteps, features]
-        X = X.reshape((X.shape[0], mlConfig.INPUT_LEN, mlConfig.DATA_LEN))
-        Y = Y.reshape((Y.shape[0], 1, mlConfig.OUTPUT_DATA_LEN))
+        X = X.reshape((X.shape[0], toolConfig.INPUT_LEN, toolConfig.DATA_LEN))
+        Y = Y.reshape((Y.shape[0], 1, toolConfig.OUTPUT_DATA_LEN))
 
         return X, Y
 
@@ -433,14 +567,14 @@ class CyTCN(Modeling):
                             epochs=self.epochs, batch_size=self.batch_size,
                             validation_data=(valid_X, valid_Y),
                             verbose=2,
-                            shuffle=False)
+                            shuffle=True)
 
         if num is not None:
-            model.save(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/tcn{num}.h5')
+            model.save(f'model/{self._uav_class}/{self.in_out}/tcn{num}.h5')
             plt.plot(history.history['loss'], label=f'train-{num}')
             plt.plot(history.history['val_loss'], label=f'validation-{num}')
         else:
-            model.save(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/tcn.h5')
+            model.save(f'model/{self._uav_class}/{self.in_out}/tcn.h5')
             plt.plot(history.history['loss'], label='train')
             plt.plot(history.history['val_loss'], label='validation')
         # plot history
@@ -449,7 +583,7 @@ class CyTCN(Modeling):
         plt.xlabel('Epochs Time', fontsize=18)
         plt.legend(prop=axis_font)
         # plt.show()
-        plt.savefig(f'model/{self._uav_class}/{mlConfig.INPUT_LEN}/tcn_loss.pdf')
+        plt.savefig(f'model/{self._uav_class}/{self.in_out}/tcn_loss.pdf')
         return model
 
     def _build_model(self, train_shape: np.shape):
@@ -458,7 +592,7 @@ class CyTCN(Modeling):
             layers=[
                 TCN(input_shape=(train_shape[1], train_shape[2])),  # output.shape = (batch, 64)
                 RepeatVector(1),  # output.shape = (batch, output_timesteps, 64)
-                Dense(mlConfig.OUTPUT_DATA_LEN)  # output.shape = (batch, output_timesteps, output_dim)
+                Dense(toolConfig.OUTPUT_DATA_LEN)  # output.shape = (batch, output_timesteps, output_dim)
             ]
         )
         model.compile(loss="mse",
@@ -468,9 +602,5 @@ class CyTCN(Modeling):
         return model
 
     def read_model(self):
-        self._model = load_model(f'model/{toolConfig.MODE}/{mlConfig.INPUT_LEN}/tcn.h5',
+        self._model = load_model(f'model/{toolConfig.MODE}/{self.in_out}/tcn.h5',
                                  custom_objects={"TCN": TCN})
-
-
-
-

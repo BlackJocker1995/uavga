@@ -4,13 +4,13 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-from Cptool.gaMavlink import GaMavlink
+from Cptool.gaMavlink import GaMavlinkAPM
 from uavga.uavgeat import UAVProblem
 
 
 def test1():
-    para_dict = GaMavlink.load_param()
-    ranges = GaMavlink.read_range_from_dict(para_dict)
+    para_dict = GaMavlinkAPM.load_param()
+    ranges = GaMavlinkAPM.read_range_from_dict(para_dict)
     units = ranges[:, 1] - ranges[:, 0]
 
     base_data = pd.read_csv('result/params_test1.csv')

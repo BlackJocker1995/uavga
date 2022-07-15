@@ -1,5 +1,5 @@
-import Cptool.config
-from Cptool.gaMavlink import GaMavlink
+from Cptool.config import toolConfig
+from Cptool.gaMavlink import GaMavlinkAPM
 
 if __name__ == '__main__':
-    GaMavlink.extract_from_log_path(f"./log/{Cptool.config.MODE}")
+    GaMavlinkAPM.extract_log_path(f"{toolConfig.ARDUPILOT_LOG_PATH}/logs/bin_changed", threat=6)

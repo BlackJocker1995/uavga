@@ -1,17 +1,17 @@
 import geatpy as ea
 import numpy as np
 
-from Cptool.gaMavlink import GaMavlink
+from Cptool.gaMavlink import GaMavlinkAPM
 from uavga.uavgeat import UAVProblem
 
 
 class UAVGA(object):
     def __init__(self, param_choice):
 
-        para_dict = GaMavlink.load_param()
+        para_dict = GaMavlinkAPM.load_param()
         # 获得sub 数据
-        param_choice_dict = GaMavlink.select_sub_dict(para_dict, param_choice)
-        step_unit = GaMavlink.read_unit_from_dict(param_choice_dict)
+        param_choice_dict = GaMavlinkAPM.select_sub_dict(para_dict, param_choice)
+        step_unit = GaMavlinkAPM.read_unit_from_dict(param_choice_dict)
 
         self.param_len = len(param_choice)
         self.uavproblem = UAVProblem(param_choice, para_dict)
@@ -20,7 +20,7 @@ class UAVGA(object):
         self.algorithm = None
 
         # 类型需要手动转换
-        self.default_pop = (GaMavlink.get_default_values(param_choice_dict) / step_unit).to_numpy(dtype=int)
+        self.default_pop = (GaMavlinkAPM.get_default_values(param_choice_dict) / step_unit).to_numpy(dtype=int)
 
     def set_model(self, filename):
         self.uavproblem.set_model(filename)
