@@ -313,6 +313,9 @@ class GaSimManager(object):
         """
         self.mav_monitor.start()
 
+    def sim_close_msg(self):
+        pass
+
     def stop_sitl(self):
         """
         stop the simulator

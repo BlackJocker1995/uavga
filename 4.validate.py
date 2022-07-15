@@ -10,9 +10,10 @@ import Cptool
 import ModelFit
 from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
-from uavga.fuzzer import LGFuzzer
+
 
 # from Cptool.gaSimManager import GaSimManager
+from uavga.fuzzer import return_random_n_gen
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Personal information')
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     ]
 
     # Get Fuzzing result and validate
-    candidate_var, candidate_obj = LGFuzzer.return_random_n_gen(5)
+    candidate_var, candidate_obj = return_random_n_gen(5)
     candidate_obj = np.array(candidate_obj, dtype=float).round(8)
     candidate_var = np.array(candidate_var, dtype=float).round(8)
 
