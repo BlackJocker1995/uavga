@@ -21,10 +21,13 @@ from Cptool.config import toolConfig
 class GaSimManager(object):
 
     def __init__(self, debug: bool = False):
+        self._sim_task = None
         self._sitl_task = None
-        self.mav_monitor: GaMavlinkAPM = None
+        self.sim_monitor = None
+        self.mav_monitor = None
         self._even = None
-        self.msg_queue = multiprocessing.Queue()
+        self.sim_msg_queue = multiprocessing.Queue()
+        self.mav_msg_queue = multiprocessing.Queue()
 
         if debug:
             logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
@@ -139,7 +142,8 @@ class GaSimManager(object):
         init the SITL simulator
         :return:
         """
-        self.mav_monitor = GaMavlinkAPM(14540 + int(drone_i), self.msg_queue)
+        self.mav_monitor = GaMavlinkAPM(14540 + int(drone_i),  recv_msg_queue=self.sim_msg_queue,
+                                        send_msg_queue=self.mav_msg_queue)
         self.mav_monitor.connect()
         if toolConfig.MODE == 'Ardupilot':
             if self.mav_monitor.ready2fly():

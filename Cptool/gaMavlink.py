@@ -327,6 +327,51 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
         self.recv_msg_queue = recv_msg_queue
         self.send_msg_queue = send_msg_queue
 
+    def wait_complete(self, remain_fail=False, timeout=60 * 5):
+        if not self._master:
+            raise ValueError('Connect at first!')
+        try:
+            timeout_start = time.time()
+            while time.time() < timeout_start + timeout:
+                message = self._master.recv_match(type=['STATUSTEXT'], blocking=True, timeout=30)
+                if message is None:
+                    continue
+                message = message.to_dict()
+                out_msg = "None"
+                line = message['text']
+                if message["severity"] == 6:
+                    if "Land" in line:
+                        # if successful landed, break the loop and return true
+                        logging.info(f"Successful break the loop.")
+                        return True
+                elif message["severity"] == 2 or message["severity"] == 0:
+                    # Appear error, break loop and return false
+                    if "SIM Hit ground at" in line:
+                        pass
+                    elif "Potential Thrust Loss" in line:
+                        pass
+                    elif "Crash" in line:
+                        pass
+                    elif "PreArm" in line:
+                        pass
+                        # will not generate log file
+                        logging.info(f"Get error with {message['text']}")
+                        return True
+                    logging.info(f"Get error with {message['text']}")
+                    if remain_fail:
+                        # Keep problem log
+                        return True
+                    else:
+                        return False
+        except TimeoutError:
+            # Mission point time out, change other params
+            logging.warning('Wp timeout!')
+            return False
+        except KeyboardInterrupt:
+            logging.info('Key bordInterrupt! exit')
+            return False
+        return False
+
         # Ardupilot
     @classmethod
     def log_extract_apm(cls, msg: DFMessage):
@@ -486,6 +531,24 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
             random_sample = random.randrange(range[0], range[1], step)
             out[name] = random_sample
         return out
+
+    @staticmethod
+    def delete_current_log():
+        log_index = f"{toolConfig.ARDUPILOT_LOG_PATH}/logs/LASTLOG.TXT"
+
+        # Read last index
+        with open(log_index, 'r') as f:
+            num = int(f.readline())
+        # To string
+        num = f'{num}'
+        log_file = f"{toolConfig.ARDUPILOT_LOG_PATH}/logs/{num.rjust(8, '0')}.BIN"
+        # Remove file
+        if os.path.exists(log_file):
+            os.remove(log_file)
+            # Fix last index number
+            last_num = f"{int(num) - 1}"
+            with open(log_index, 'w') as f:
+                f.write(last_num)
 
     def run(self):
         """
