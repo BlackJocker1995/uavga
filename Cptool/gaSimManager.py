@@ -22,7 +22,7 @@ class GaSimManager(object):
 
     def __init__(self, debug: bool = False):
         self._sitl_task = None
-        self._mav_monitor: GaMavlinkAPM = None
+        self.mav_monitor: GaMavlinkAPM = None
         self._even = None
         self.msg_queue = multiprocessing.Queue()
 
@@ -33,34 +33,92 @@ class GaSimManager(object):
             logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                                 level=logging.INFO)
 
+    def start_sim(self):
+        """
+        启动AIRSIM_PATH目录下的Airsim模拟器
+        :return:
+        """
+        # Airsim
+        cmd = None
+        if toolConfig.SIM == 'Airsim':
+            cmd = f'gnome-terminal -- {toolConfig.AIRSIM_PATH} ' \
+                  f'-ResX={toolConfig.HEIGHT} -ResY={toolConfig.WEIGHT} -windowed'
+        if toolConfig.SIM == 'Jmavsim':
+            cmd = f'gnome-terminal -- bash /home/rain/PX4-Autopilot/Tools/jmavsim_run.sh'
+        if toolConfig.SIM == 'Morse':
+            cmd = f'gnome-terminal -- morse run /home/rain/ardupilot/libraries/SITL/examples/Morse/quadcopter.py'
+        if toolConfig.SIM == 'Gazebo':
+            cmd = f'gnome-terminal -- gazebo --verbose worlds/iris_arducopter_runway.world'
+        if cmd is None:
+            raise ValueError('Not support mode')
+        logging.info(f'Start Simulator {toolConfig.SIM}')
+        self._sim_task = pexpect.spawn(cmd, cwd='/home/rain/')
+
     def start_sitl(self):
         """
         start the simulator
         :return:
         """
-        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin"):
+        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin") and toolConfig.MODE == "Ardupilot":
             os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin")
-        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm"):
+        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm") and toolConfig.MODE == "Ardupilot":
             os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm")
+        if os.path.exists(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016") \
+                and toolConfig.MODE == "PX4":
+            os.remove(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016")
 
         cmd = None
         if toolConfig.MODE == 'Ardupilot':
-            if toolConfig.SIM == 'SITL':
-
-                cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py --location=AVC_plane " \
-                      f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -v ArduCopter -w -S {toolConfig.SPEED} "
             if toolConfig.SIM == 'Airsim':
-                cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f airsim-copter " \
-                      f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -S {toolConfig.SPEED}"
-
+                if toolConfig.HOME is not None:
+                    cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter " \
+                          f"--location={toolConfig.HOME}" \
+                          f" -f airsim-copter --out=127.0.0.1:14550 --out=127.0.0.1:14540 " \
+                          f" -S {toolConfig.SPEED}"
+                else:
+                    cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f airsim-copter " \
+                          f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -S {toolConfig.SPEED}"
+            if toolConfig.SIM == 'Morse':
+                cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter --model morse-quad " \
+                      f"--add-param-file=/home/rain/ardupilot/libraries/SITL/examples/Morse/quadcopter.parm  " \
+                      f"--out=127.0.0.1:14550 -S {toolConfig.SPEED}"
+            if toolConfig.SIM == 'Gazebo':
+                cmd = f'python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -f gazebo-iris -v ArduCopter ' \
+                      f'--out=127.0.0.1:14550 -S {toolConfig.SPEED}'
+            if toolConfig.SIM == 'SITL':
+                if toolConfig.HOME is not None:
+                    cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py --location={toolConfig.HOME} " \
+                          f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -v ArduCopter -w -S {toolConfig.SPEED} "
+                else:
+                    cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py " \
+                          f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -v ArduCopter -w -S {toolConfig.SPEED} "
             self._sitl_task = pexpect.spawn(cmd, cwd=toolConfig.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8')
+
+        if toolConfig.MODE == 'PX4':
+            if toolConfig.HOME is None:
+                pre_argv = f"PX4_HOME_LAT=-35.362758 " \
+                           f"PX4_HOME_LON=149.165135 " \
+                           f"PX4_HOME_ALT=583.730592 " \
+                           f"PX4_SIM_SPEED_FACTOR={toolConfig.SPEED}"
+            else:
+                pre_argv = f"PX4_HOME_LAT=40.072842 " \
+                           f"PX4_HOME_LON=-105.230575 " \
+                           f"PX4_HOME_ALT=0.000000 " \
+                           f"PX4_SIM_SPEED_FACTOR={toolConfig.SPEED}"
+
+            if toolConfig.SIM == 'Airsim':
+                cmd = f'make {pre_argv} px4_sitl_default none_iris'
+            if toolConfig.SIM == 'Jmavsim':
+                cmd = f'make {pre_argv} px4_sitl_default jmavsim'
+
+            self._sitl_task = pexpect.spawn(cmd, cwd=toolConfig.PX4_RUN_PATH, timeout=30, encoding='utf-8')
         logging.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM}]")
         if cmd is None:
             raise ValueError('Not support mode or simulator')
 
     def start_multiple_sitl(self, drone_i=0):
         """
-        start multiple simulators
+        start multiple simulators (not support PX4 now)
         :param drone_i:
         :return:
         """
@@ -81,7 +139,7 @@ class GaSimManager(object):
         init the SITL simulator
         :return:
         """
-        self._mav_monitor = GaMavlinkAPM(14540 + int(drone_i), self.msg_queue)
+        self.mav_monitor = GaMavlinkAPM(14540 + int(drone_i), self.msg_queue)
         self.mav_monitor.connect()
         if toolConfig.MODE == 'Ardupilot':
             if self.mav_monitor.ready2fly():
@@ -89,8 +147,12 @@ class GaSimManager(object):
         elif toolConfig.MODE == 'PX4':
             while True:
                 line = self._sitl_task.readline()
-                if 'notify negative' in line:
-                    break
+                if 'notify' in line:
+                    # Disable the fail warning and return
+                    self._sitl_task.send("param set NAV_RCL_ACT 0 \n")
+                    time.sleep(0.1)
+                    self._sitl_task.send("param set NAV_DLL_ACT 0 \n")
+                    return True
 
     def mav_monitor_error(self):
         """
@@ -116,7 +178,7 @@ class GaSimManager(object):
 
         start_time = time.time()
         while True:
-            msg = self._mav_monitor.get_msg(['STATUSTEXT'])
+            msg = self.mav_monitor.get_msg(['STATUSTEXT'])
             if msg is not None:
                 msg = msg.to_dict()
                 if msg['severity'] == 0:
@@ -211,7 +273,7 @@ class GaSimManager(object):
         mavlink connect
         :return:
         """
-        return self._mav_monitor.connect()
+        return self.mav_monitor.connect()
 
     def mav_monitor_set_mission(self, mission_file, random: bool = False):
         """
@@ -220,7 +282,7 @@ class GaSimManager(object):
         :param random:
         :return:
         """
-        return self._mav_monitor.set_mission(mission_file, random)
+        return self.mav_monitor.set_mission(mission_file, random)
 
     def mav_monitor_set_param(self, params, values):
         """
@@ -228,28 +290,28 @@ class GaSimManager(object):
         :return:
         """
         for param, value in zip(params, values):
-            self._mav_monitor.set_param(param, value)
+            self.mav_monitor.set_param(param, value)
 
     def mav_monitor_get_param(self, param):
         """
         get drone configuration
         :return:
         """
-        return self._mav_monitor.get_param(param)
+        return self.mav_monitor.get_param(param)
 
     def mav_monitor_start_mission(self):
         """
         start mission
         :return:
         """
-        self._mav_monitor.start_mission()
+        self.mav_monitor.start_mission()
 
     def start_mav_monitor(self):
         """
         start monitor
         :return:
         """
-        self._mav_monitor.start()
+        self.mav_monitor.start()
 
     def stop_sitl(self):
         """
@@ -263,9 +325,11 @@ class GaSimManager(object):
                 break
         self._sitl_task.close(force=True)
         logging.info('Stop SITL task.')
+        self.sim_close_msg()
+        logging.debug('Send mavclosed to Airsim.')
 
     def get_mav_monitor(self):
-        return self._mav_monitor
+        return self.mav_monitor
 
     def sitl_task(self) -> spawn:
         return self._sitl_task
