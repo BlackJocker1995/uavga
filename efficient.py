@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
 from Cptool.gaMavlink import GaMavlinkAPM
-from uavga.uavgeat import UAVProblem
+from uavga.uavgeat import ProblemGA
 
 
 def test1():
@@ -75,7 +75,7 @@ def test3():
 
         candidate_var = pop_v[:min(4, len(pop_v))]
         candidate_obj = pop_p[:min(4, len(pop_p))]
-        candidate_obj = UAVProblem.reasonable_range_static(candidate_obj)
+        candidate_obj = ProblemGA.reasonable_range_static(candidate_obj)
 
         candidate_vars.extend(candidate_var)
         candidate_objs.extend(candidate_obj)

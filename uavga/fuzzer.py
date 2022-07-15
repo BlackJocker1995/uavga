@@ -1,6 +1,8 @@
 import colorsys
+import logging
 import pickle
 import random
+from abc import abstractmethod
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,174 +12,178 @@ from sklearn.decomposition import PCA
 
 from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
+from ModelFit.approximate import CyLSTM
 from range.rangegen import ANAGA
-from uavga.uavgeat import UAVProblem
-from uavga.uavgen import UAVGA
+from uavga.problem import ProblemGA
+from uavga.searcher import SearchOptimizer, GAOptimizer
 
 
-class LGFuzzer(object):
-    def __init__(self, ga_params, model_file, model_trans, model_csv):
-        """
+def split_segment(csv_data):
+    """
+    select status data and split to multiple segments
+    :return:
+    """
+    # Drop configuration (parameter values)
+    tmp = csv_data.to_numpy()[:, :toolConfig.STATUS_LEN]
+    # To prevent unbalanced
+    tmp = tmp[:-(tmp.shape[0] % (toolConfig.SEGMENT_LEN + 1)), :]
+    # Split
+    tmp_split = np.array_split(tmp, tmp.shape[0] // (toolConfig.SEGMENT_LEN + 1), axis=0)
 
-        :param ga_params:需要参加fuzzing的param
-        :param model_file: lstm模型文件
-        :param model_trans: lstm模型的归一化文件
-        :param model_csv: 数据文件
-        """
-        # 参加ga的param
-        self.ga = UAVGA(ga_params)
-        self.ga.set_trans(model_trans)
-        self.ga.set_model(model_file)
+    return np.array(tmp_split)
 
-        # read csv
-        data = pd.read_csv(model_csv, header=0, index_col=0)
-        self.csv_data = data
 
-    def random_choie_meanshift(self, segment_csv, rate=0.25):
-        data_class = segment_csv.reshape(
-                (-1, segment_csv.shape[1] * segment_csv.shape[2]))
-        bandwidth = estimate_bandwidth(data_class, quantile=rate)
-        clf = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+def random_choie_meanshift(segment_csv, rate=0.25):
+    # 3D to 2D
+    data_class = segment_csv.reshape(
+        (-1, segment_csv.shape[1] * segment_csv.shape[2]))
+    # Cluster
+    bandwidth = estimate_bandwidth(data_class, quantile=rate)
+    clf = MeanShift(bandwidth=bandwidth)
+    clf.fit(data_class)
+    # Cluster reuslt
+    predicted = clf.labels_
+    logging.info(f'Meanshift class: {max(predicted)}')
+    # ------------- draw ------------------#
+    c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
+    # c = np.random.rand(max(predicted) + 1, 1)
+    # c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
 
-        clf.fit(data_class)
-        predicted = clf.labels_
-        print(f'Meanshift class: {max(predicted)}')
-        # -------------
-        c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
-        #c = np.random.rand(max(predicted) + 1, 1)
-        #c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
+    colors = [c[i] for i in predicted]
 
-        colors = [c[i] for i in predicted]
+    pca = PCA(n_components=2, svd_solver='arpack')
+    show = pca.fit_transform(data_class)
 
-        pca = PCA(n_components=2, svd_solver='arpack')
-        show = pca.fit_transform(data_class)
+    fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(show[:, 0], show[:, 1], show[:, 2], c=colors, s=5)
+    plt.scatter(show[:, 0], show[:, 1], c=colors, s=5)
 
-        fig = plt.figure()
-        # ax = fig.add_subplot(111, projection='3d')
-        # ax.scatter(show[:, 0], show[:, 1], show[:, 2], c=colors, s=5)
-        plt.scatter(show[:, 0], show[:, 1], c=colors, s=5)
+    plt.show()
+    # -------------------------
 
-        plt.show()
-        # -------------------------
-        out = []
-        for i in range(max(predicted)):
-            index = np.where(predicted == i)[0]
-            col_index = np.random.choice(index, min(index.shape[0], 10))
-            select = segment_csv[col_index]
-            out.extend(select)
-        out = np.array(out)
-        return out
+    out = []
+    for i in range(max(predicted)):
+        index = np.where(predicted == i)[0]
+        col_index = np.random.choice(index, min(index.shape[0], 10))
+        select = segment_csv[col_index]
+        out.extend(select)
+    out = np.array(out)
+    return out
 
-    def run(self, num=0, meanshift=False):
-        """
-        Start Fuzzing
-        :param num: The number of returned pop
-        :return:
-        """
-        segment_csv = self.split_segment()
-        if num != 0 and not meanshift:
-            index = np.random.choice(np.arange(segment_csv.shape[0]), num)
-            segment_csv = segment_csv[index, :, :]
-        elif meanshift:
-            segment_csv = self.random_choie_meanshift(segment_csv)
 
-        obj_population = []  # 种群
+def run_fuzzing(csv_data, num=0):
+    """
+    Start Fuzzing
+    :param num: The number of data to join cluster
+    :return:
+    """
 
-        for i, context in enumerate(segment_csv):
-            self.ga.uavproblem.context_value = context
-            self.ga.run()
-            obj_population.append(self.ga.population)
-            print(f'------------------- {i+1} / {segment_csv.shape[0]} -----------------')
-        with open('result/pop.pkl','wb') as f:
-            pickle.dump(obj_population, f)
+    predictor = CyLSTM(100, 100, toolConfig.DEBUG)
+    predictor.read_model()
 
-    def split_segment(self):
-        tmp = self.csv_data.to_numpy()[:, :toolConfig.CONTEXT_LEN]
-        # To prevent unbalanced
-        tmp = tmp[:-(tmp.shape[0] % (toolConfig.INPUT_LEN + 1)), :]
-        # Split
-        tmp_split = np.array_split(tmp, tmp.shape[0] // (toolConfig.INPUT_LEN + 1), axis=0)
-        return np.array(tmp_split)
+    gaOptimizer = GAOptimizer()
+    gaOptimizer.set_bounds()
+    gaOptimizer.set_predictor(predictor)
+    # split status data
+    segment_csv = split_segment(csv_data)
 
-    @staticmethod
-    def return_best_n_gen(n=1):
-        candidate_vars = []
-        candidate_objs = []
+    # meanshift cluster
+    if num != 0:
+        # Random select
+        index = np.random.choice(np.arange(segment_csv.shape[0]), num)
+        segment_csv = segment_csv[index, :, :]
+    segment_csv = random_choie_meanshift(segment_csv)
 
-        with open('result/pop.pkl','rb') as f:
-            obj_populations = pickle.load(f)
-        for pop in obj_populations:
-            pop_v = pop.ObjV
-            pop_p = pop.Phen
+    obj_population = []  # 种群
 
-            candidate_var_index = np.unique(pop_p, axis=0, return_index=True)[1]
+    for i, context in enumerate(segment_csv):
+        gaOptimizer.problem.init_status(context)
+        gaOptimizer.start_optimize()
+        obj_population.append(gaOptimizer.population)
+        print(f'------------------- {i + 1} / {segment_csv.shape[0]} -----------------')
+    with open('result/pop.pkl', 'wb') as f:
+        pickle.dump(obj_population, f)
 
-            pop_v = pop_v[candidate_var_index]
-            pop_p = pop_p[candidate_var_index]
 
-            candidate = [-1] * pop_v
+def return_best_n_gen(n=1):
+    candidate_vars = []
+    candidate_objs = []
 
-            candidate_index = np.argsort(candidate.reshape(-1))
-            pop_v = pop_v[candidate_index].reshape((-1,1))
-            pop_p = pop_p[candidate_index].reshape((-1,20))
+    with open('result/pop.pkl', 'rb') as f:
+        obj_populations = pickle.load(f)
+    for pop in obj_populations:
+        pop_v = pop.ObjV
+        pop_p = pop.Phen
 
-            if n != 0:
-                candidate_var = pop_v[:min(n, len(pop_v))]
-                candidate_obj = pop_p[:min(n, len(pop_p))]
-            candidate_obj = UAVProblem.reasonable_range_static(candidate_obj)
+        candidate_var_index = np.unique(pop_p, axis=0, return_index=True)[1]
 
-            candidate_vars.extend(candidate_var)
-            candidate_objs.extend(candidate_obj)
+        pop_v = pop_v[candidate_var_index]
+        pop_p = pop_p[candidate_var_index]
 
-        return candidate_vars, candidate_objs
+        candidate = [-1] * pop_v
 
-    @staticmethod
-    def return_random_n_gen(n=1):
-        candidate_vars = []
-        candidate_objs = []
+        candidate_index = np.argsort(candidate.reshape(-1))
+        pop_v = pop_v[candidate_index].reshape((-1, 1))
+        pop_p = pop_p[candidate_index].reshape((-1, 20))
 
-        with open('result/pop.pkl', 'rb') as f:
-            obj_populations = pickle.load(f)
-        for pop in obj_populations:
-            pop_v = pop.ObjV
-            pop_p = pop.Phen
+        if n != 0:
+            candidate_var = pop_v[:min(n, len(pop_v))]
+            candidate_obj = pop_p[:min(n, len(pop_p))]
+        candidate_obj = ProblemGA.reasonable_range_static(candidate_obj)
 
-            candidate_var_index = np.unique(pop_p, axis=0, return_index=True)[1]
+        candidate_vars.extend(candidate_var)
+        candidate_objs.extend(candidate_obj)
 
-            pop_v = pop_v[candidate_var_index]
-            pop_p = pop_p[candidate_var_index]
+    return candidate_vars, candidate_objs
 
-            candidate = [-1] * pop_v
 
-            candidate_index = np.argsort(candidate.reshape(-1))
-            pop_v = pop_v[candidate_index].reshape((-1, 1))
-            pop_p = pop_p[candidate_index].reshape((-1, 20))
+def return_random_n_gen(n=1):
+    candidate_vars = []
+    candidate_objs = []
 
-            if n != 0:
-                candidate_var = pop_v[[1,200,500]]
-                candidate_obj = pop_p[[1,200,500],:]
-            candidate_obj = UAVProblem.reasonable_range_static(candidate_obj)
+    with open('result/pop.pkl', 'rb') as f:
+        obj_populations = pickle.load(f)
+    for pop in obj_populations:
+        pop_v = pop.ObjV
+        pop_p = pop.Phen
 
-            candidate_vars.extend(candidate_var)
-            candidate_objs.extend(candidate_obj)
-        return candidate_vars, candidate_objs
+        candidate_var_index = np.unique(pop_p, axis=0, return_index=True)[1]
 
-    @staticmethod
-    def reshow(params, values):
-        manager = GaSimManager(debug=toolConfig.DEBUG)
-        manager.start_multiple_sitl()
-        manager.mav_monitor_init()
+        pop_v = pop_v[candidate_var_index]
+        pop_p = pop_p[candidate_var_index]
 
-        manager.mav_monitor_connect()
-        manager.mav_monitor_set_mission("Cptool/mission.txt", random=True)
+        candidate = [-1] * pop_v
 
-        manager.mav_monitor_set_param(params=params, values=values)
+        candidate_index = np.argsort(candidate.reshape(-1))
+        pop_v = pop_v[candidate_index].reshape((-1, 1))
+        pop_p = pop_p[candidate_index].reshape((-1, 20))
 
-        # manager.start_mav_monitor()
-        manager.mav_monitor_start_mission()
-        result = manager.mav_monitor_error()
+        if n != 0:
+            candidate_var = pop_v[[1, 200, 500]]
+            candidate_obj = pop_p[[1, 200, 500], :]
+        candidate_obj = ProblemGA.reasonable_range_static(candidate_obj)
 
-        manager.stop_sitl()
+        candidate_vars.extend(candidate_var)
+        candidate_objs.extend(candidate_obj)
+    return candidate_vars, candidate_objs
+
+
+def reshow(params, values):
+    manager = GaSimManager(debug=toolConfig.DEBUG)
+    manager.start_multiple_sitl()
+    manager.mav_monitor_init()
+
+    manager.mav_monitor_connect()
+    manager.mav_monitor_set_mission("Cptool/mission.txt", random=True)
+
+    manager.mav_monitor_set_param(params=params, values=values)
+
+    # manager.start_mav_monitor()
+    manager.mav_monitor_start_mission()
+    result = manager.mav_monitor_error()
+
+    manager.stop_sitl()
 
 
 def ncolors(num):
@@ -222,11 +228,3 @@ def color(value):
         a2 = digit.index(value[3]) * 16 + digit.index(value[4])
         a3 = digit.index(value[5]) * 16 + digit.index(value[6])
         return (a1, a2, a3)
-
-
-
-
-
-
-
-

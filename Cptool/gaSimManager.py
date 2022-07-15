@@ -10,7 +10,6 @@ import sys
 import threading
 import time
 
-import eventlet
 import pexpect
 from pexpect import spawn
 from pymavlink import mavextra, mavwp

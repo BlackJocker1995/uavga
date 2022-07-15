@@ -36,7 +36,7 @@ class ANAGA(object):
         self.algorithm.maxTrappedCount = 10
         self.algorithm.drawing = 1#
         """==========================调用算法模板进行种群进化======================="""
-        [NDSet, population]  = self.algorithm.run()
+        [NDSet, population]  = self.algorithm.start_optimize()
 
         with open('NDSetnew.pkl','wb') as f:
             pickle.dump(NDSet, f)

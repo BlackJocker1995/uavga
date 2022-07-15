@@ -408,23 +408,11 @@ class Modeling(object):
         :param predicted_data: predicted data
         :return: status_deviation result which has been normalized
         """
-        # if len(predicted_data.shape) > 2:
-        #     predicted_data = predicted_data.reshape([predicted_data.shape[0], predicted_data.shape[2]])
-        #     status_data = status_data.reshape([status_data.shape[0], status_data.shape[2]])
         deviation = np.abs(status_data - predicted_data)
         if len(predicted_data.shape) == 3:
-            sliding_patch = sliding_window_view(deviation, 6, axis=1).astype(dtype=np.double)
-            loss = sliding_patch.sum(axis=tuple(range(2, 4)))
+            loss = deviation.sum(axis=tuple(range(1, 3)))
         else:
-            sliding_patch = sliding_window_view(deviation, 6, axis=0).astype(dtype=np.double)
-            loss = sliding_patch.sum(axis=1).sum(axis=1)
-        # predicted_data = sliding_window_view(predicted_data, 6, axis=0).astype(dtype=np.double)
-        # status_data = sliding_window_view(status_data, 6, axis=0).astype(dtype=np.double)
-        # Dynamic Time Warping (DTW) distance
-        # loss = []
-        # for predicted_item, status_item in zip(predicted_data, status_data):
-        #     loss.append(dtw_ndim.distance_fast(predicted_item, status_item))
-        # loss = np.average(np.array(loss))
+            loss = deviation.sum(axis=1).sum(axis=1)
         return loss
 
     @classmethod
