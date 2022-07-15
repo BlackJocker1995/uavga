@@ -60,7 +60,7 @@ class DroneMavlink:
             if toolConfig.MODE == "Ardupilot" and "IMU0 is using GPS" in message:
                 logging.debug("Ready to fly.")
                 return True
-            print(message)
+            # print(message)
             if toolConfig.MODE == "PX4" and "home set" in message:
                 logging.debug("Ready to fly.")
                 return True

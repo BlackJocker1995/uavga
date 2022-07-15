@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
         manager.start_sitl()
 
-        manager.mav_monitor_init(GaMavlinkAPM)
+        manager.mav_monitor_init(0)
 
         manager.mav_monitor.set_mission('Cptool/mission.txt', True)
 
