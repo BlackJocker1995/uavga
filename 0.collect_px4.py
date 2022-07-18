@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from datetime import datetime
@@ -22,12 +23,13 @@ if __name__ == '__main__':
             time.sleep(0.5)
 
             print('--------------------------------------------------------------------------------------------------')
-            print(f'--------- {datetime.now()} === lastindex: {file_number(f"{toolConfig.PX4_LOG_PATH}")}--------------')
+            print(
+                f'--------- {datetime.now()} === lastindex: {file_number(f"{toolConfig.PX4_LOG_PATH}")}--------------')
             print('--------------------------------------------------------------------------------------------------')
 
             manager.start_sitl()
 
-            manager.mav_monitor_init(GaMavlinkPX4)
+            manager.mav_monitor_init(GaMavlinkPX4, 0)
 
             manager.mav_monitor.set_mission('Cptool/fitCollection_px4.txt', False)
 
@@ -46,4 +48,5 @@ if __name__ == '__main__':
                 GaMavlinkPX4.delete_current_log()
 
         except Exception as e:
+            logging.warning(e)
             continue

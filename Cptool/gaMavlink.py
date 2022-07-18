@@ -21,9 +21,10 @@ from Cptool.mavtool import load_param, read_path_specified_file, select_sub_dict
 
 
 class DroneMavlink:
-    def __init__(self, port):
+    def __init__(self, port, recv_msg_queue=None, send_msg_queue=None):
         super(DroneMavlink, self).__init__()
-
+        self.recv_msg_queue = recv_msg_queue
+        self.send_msg_queue = send_msg_queue
         self._master: mavserial = None
         self._port = port
         self.takeoff = False
@@ -323,58 +324,10 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
     """
 
     def __init__(self, port, recv_msg_queue=None, send_msg_queue=None):
-        super(GaMavlinkAPM, self).__init__(port)
-        self.recv_msg_queue = recv_msg_queue
-        self.send_msg_queue = send_msg_queue
+        super(GaMavlinkAPM, self).__init__(port, recv_msg_queue, send_msg_queue)
 
-    def wait_complete(self, remain_fail=False, timeout=60 * 5):
-        if not self._master:
-            raise ValueError('Connect at first!')
-        try:
-            timeout_start = time.time()
-            while time.time() < timeout_start + timeout:
-                message = self._master.recv_match(type=['STATUSTEXT'], blocking=True, timeout=30)
-                if message is None:
-                    continue
-                message = message.to_dict()
-                out_msg = "None"
-                line = message['text']
-                if message["severity"] == 6:
-                    if "Land" in line:
-                        # if successful landed, break the loop and return true
-                        logging.info(f"Successful break the loop.")
-                        return True
-                elif message["severity"] == 2 or message["severity"] == 0:
-                    # Appear error, break loop and return false
-                    if "SIM Hit ground at" in line:
-                        pass
-                    elif "Potential Thrust Loss" in line:
-                        pass
-                    elif "Crash" in line:
-                        pass
-                    elif "PreArm" in line:
-                        pass
-                        # will not generate log file
-                        logging.info(f"Get error with {message['text']}")
-                        return True
-                    logging.info(f"Get error with {message['text']}")
-                    if remain_fail:
-                        # Keep problem log
-                        return True
-                    else:
-                        return False
-        except TimeoutError:
-            # Mission point time out, change other params
-            logging.warning('Wp timeout!')
-            return False
-        except KeyboardInterrupt:
-            logging.info('Key bordInterrupt! exit')
-            return False
-        return False
-
-        # Ardupilot
-    @classmethod
-    def log_extract_apm(cls, msg: DFMessage):
+    @staticmethod
+    def log_extract_apm(msg: DFMessage):
         """
         parse the msg of mavlink
         :param msg:
@@ -464,8 +417,8 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
         df_array = df_array[order_name]
         return df_array
 
-    @classmethod
-    def extract_log_file(cls, log_file):
+    @staticmethod
+    def extract_log_file(log_file):
         """
         extract log message form a bin file.
         :param log_file:
@@ -550,6 +503,53 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
             with open(log_index, 'w') as f:
                 f.write(last_num)
 
+    def wait_complete(self, remain_fail=False, timeout=60 * 5):
+        if not self._master:
+            raise ValueError('Connect at first!')
+        try:
+            timeout_start = time.time()
+            while time.time() < timeout_start + timeout:
+                message = self._master.recv_match(type=['STATUSTEXT'], blocking=True, timeout=30)
+                if message is None:
+                    continue
+                message = message.to_dict()
+                out_msg = "None"
+                line = message['text']
+                if message["severity"] == 6:
+                    if "Land" in line:
+                        # if successful landed, break the loop and return true
+                        logging.info(f"Successful break the loop.")
+                        return True
+                elif message["severity"] == 2 or message["severity"] == 0:
+                    # Appear error, break loop and return false
+                    if "SIM Hit ground at" in line:
+                        pass
+                    elif "Potential Thrust Loss" in line:
+                        pass
+                    elif "Crash" in line:
+                        pass
+                    elif "PreArm" in line:
+                        pass
+                        # will not generate log file
+                        logging.info(f"Get error with {message['text']}")
+                        return True
+                    logging.info(f"Get error with {message['text']}")
+                    if remain_fail:
+                        # Keep problem log
+                        return True
+                    else:
+                        return False
+        except TimeoutError:
+            # Mission point time out, change other params
+            logging.warning('Wp timeout!')
+            return False
+        except KeyboardInterrupt:
+            logging.info('Key bordInterrupt! exit')
+            return False
+        return False
+
+        # Ardupilot
+
     def run(self):
         """
         loop check
@@ -574,9 +574,7 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
     """
 
     def __init__(self, port, recv_msg_queue=None, send_msg_queue=None):
-        super(GaMavlinkPX4, self).__init__(port)
-        self.recv_msg_queue = recv_msg_queue
-        self.send_msg_queue = send_msg_queue
+        super(GaMavlinkPX4, self).__init__(port, recv_msg_queue, send_msg_queue)
 
     def start_mission(self):
         """

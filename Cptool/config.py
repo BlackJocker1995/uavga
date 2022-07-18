@@ -35,7 +35,7 @@ class ToolConfig:
         self.__dict__["AIRSIM_PATH"] = "/media/rain/data/airsim/Africa_Savannah/LinuxNoEditor/Africa_001.sh"
         # self.__dict__["AIRSIM_PATH"] = "/media/rain/data/airsim/Blocks/LinuxNoEditor/Blocks.sh"
         # PX4 LOG Path
-        self.__dict__["PX4_RUN_PATH"] = '/home/rain/PX4-Autopilot_wy'
+        self.__dict__["PX4_RUN_PATH"] = '/home/rain/PX4-Autopilot'
 
     def __setattr__(self, name, value):
         if name in self.__dict__:

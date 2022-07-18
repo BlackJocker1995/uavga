@@ -9,12 +9,13 @@ import re
 import sys
 import threading
 import time
+from typing import Type
 
 import pexpect
 from pexpect import spawn
 from pymavlink import mavextra, mavwp
 
-from Cptool.gaMavlink import GaMavlinkAPM
+from Cptool.gaMavlink import GaMavlinkAPM, DroneMavlink
 from Cptool.config import toolConfig
 
 
@@ -137,13 +138,14 @@ class GaSimManager(object):
         self._sitl_task = (pexpect.spawn(cmd, cwd=toolConfig.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8'))
         logging.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM} - {drone_i}]")
 
-    def mav_monitor_init(self, drone_i=0):
+    def mav_monitor_init(self, mavlink_class: Type[DroneMavlink] = DroneMavlink, drone_i=0):
         """
-        init the SITL simulator
+        初始化SITL在环
         :return:
         """
-        self.mav_monitor = GaMavlinkAPM(14540 + int(drone_i),  recv_msg_queue=self.sim_msg_queue,
-                                        send_msg_queue=self.mav_msg_queue)
+        self.mav_monitor = mavlink_class(14540+int(drone_i),
+                                         recv_msg_queue=self.sim_msg_queue,
+                                         send_msg_queue=self.mav_msg_queue)
         self.mav_monitor.connect()
         if toolConfig.MODE == 'Ardupilot':
             if self.mav_monitor.ready2fly():
@@ -201,7 +203,7 @@ class GaSimManager(object):
 
             mid_point_time = time.time()
             if (mid_point_time - start_time) > time_out:
-                if time_index == True:
+                if time_index:
                     result = 'pass'
                     break
                 else:

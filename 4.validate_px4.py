@@ -16,16 +16,15 @@ from Cptool.gaSimManager import GaSimManager
 from uavga.fuzzer import return_random_n_gen
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser(description='Personal information')
     parser.add_argument('--device', dest='device', type=str, help='Name of the candidate')
     args = parser.parse_args()
     device = args.device
+
     if device is None:
         device = 0
     print(device)
 
-    toolConfig.select_mode("PX4")
     # The parameters you want to fuzzing, they must be corresponding to the predictor had.
     param = [
         "PSC_POSXY_P",
@@ -85,7 +84,7 @@ if __name__ == '__main__':
         if not manager.mav_monitor_connect():
             manager.stop_sitl()
             continue
-        manager.mav_monitor_set_mission("Cptool/fitCollection.txt", random=False)
+        manager.mav_monitor_set_mission("Cptool/fitCollection_px4.txt", random=False)
         manager.mav_monitor_set_param(params=param, values=value_vector)
 
         print(f'======================={index} / {candidate_obj.shape[0]} ==========================')
