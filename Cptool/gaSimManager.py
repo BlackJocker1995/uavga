@@ -7,11 +7,12 @@ import multiprocessing
 import os
 import re
 import sys
-import threading
 import time
 from typing import Type
 
+import numpy as np
 import pexpect
+from numpy.dual import norm
 from pexpect import spawn
 from pymavlink import mavextra, mavwp
 
@@ -166,112 +167,105 @@ class GaSimManager(object):
         :return:
         """
         logging.info(f'Start error monitor.')
-
-        time_out = 180
-        loader = mavwp.MAVWPLoader()
-        loader.load('Cptool/mission.txt')
+        # Setting
+        mission_time_out_th = 180
         result = 'pass'
-        line_point1 = loader.wpoints[-1]
-        line_point2 = loader.wpoints[2]
+        # Waypoint
+        loader = mavwp.MAVWPLoader()
+        loader.load('Cptool/fitCollection.txt')
+        #
+        lpoint1 = loader.wpoints[-1]
+        lpoint2 = loader.wpoints[2]
         pre_location = loader.wpoints[0]
-        th = threading.Thread(target=threading_send, args=(self._sitl_task,))
-        th.start()
-        index = 0
-        dis_index = 0
-        more_dis = 0
-        time_index = False
-        pre_dis = 0
+        # logger
+        small_move_num = 0
+        deviation_num = 0
+        # Flag
+        start_check = False
 
         start_time = time.time()
         while True:
-            msg = self.mav_monitor.get_msg(['STATUSTEXT'])
-            if msg is not None:
-                msg = msg.to_dict()
-                if msg['severity'] == 0:
-                    line = msg['text']
-                    if line.startswith('Crash: Disarming'):
+            msg = self.mav_monitor.get_msg(["STATUSTEXT", "GLOBAL_POSITION_INT"])
+            if msg is None:
+                continue
+            # System status message
+            if msg.getType() == "STATUSTEXT":
+                line = msg.text
+                if msg.severity == 6:
+                    if "landed" in line:
+                        # if successful landed, break the loop and return true
+                        logging.info(f"Successful break the loop.")
+                        return True
+                    elif "Mission:" in line:
+                        # Update Current mission
+                        mission_task = re.findall('Mission: ([0-9]+) [WP|Land]', line)
+                        if len(mission_task) > 0:
+                            mission_task = int(mission_task[0])
+                            lpoint1 = lpoint2
+                            lpoint2 = loader.wpoints[mission_task]
+                            # Switch Flag as mission before are not moving
+                            if mission_task == 2:
+                                start_check = True
+
+                elif msg.severity == 2 or msg.severity == 0:
+                    # Appear error, break loop and return false
+                    if "SIM Hit ground at" in line:
                         result = 'crash'
                         break
-                    if line.startswith('Potential Thrust Loss'):
+                    elif "Potential Thrust Loss" in line:
                         result = 'Thrust Loss'
                         break
-                if msg['severity'] == 2:
-                    line = msg['text']
-                    if line.startswith('PreArm: Check ACRO_BAL_ROLL/PITCH'):
+                    elif "Crash" in line:
+                        result = 'crash'
+                        break
+                    elif "PreArm" in line:
                         result = 'PreArm Failed'
                         break
+                # elif msg.severity == 2
+            elif msg.getType() == "GLOBAL_POSITION_INT":
+                # Check deviation
+                position_lat = msg.lat * 1.0e-7
+                position_lon = msg.lon * 1.0e-7
+                position = (position_lon, position_lat)
+                # Calculate distance
+                moving_dis = mavextra.distance_lat_lon(pre_location.x, pre_location.y,
+                                                       position_lat, position_lon)
+                # Update position
+                pre_location.x = position_lat
+                pre_location.y = position_lon
 
-            mid_point_time = time.time()
-            if (mid_point_time - start_time) > time_out:
-                if time_index:
-                    result = 'pass'
-                    break
-                else:
-                    result = 'timeout'
-                    break
-            try:
-                line = self._sitl_task.readline()
-            except TimeoutError:
-                result = 'TimeoutError'
-                break
-            except Exception as e:
-                logging.debug(f'{line} -- {e}')
-                sys.exit(1)
-            if line == 'DISARMED\r\n':
-                logging.debug('DISARMED')
-                break
-            mission_task = re.findall('APM: Mission: ([0-9]+) [WP|Land]', line)
-            if len(mission_task) > 0:
-                if int(mission_task[0]) != 2:
-                    mission_task = int(mission_task[0])
-                    line_point1 = line_point2
-                    line_point2 = loader.wpoints[mission_task]
-
-            candicate = re.findall('lat : ([0-9]+), lon : ([-0-9]+)', line)
-            if len(candicate) == 1:
-                position = candicate[0]
-                real_x = int(position[0]) * 1.0e-7
-                real_y = int(position[1]) * 1.0e-7
-
-                moving_dis = mavextra.distance_lat_lon(pre_location.x, pre_location.y, real_x, real_y)
-                pre_location.x = real_x
-                pre_location.y = real_y
-                # long time
-                if moving_dis < 1:
-                    index += 1
-                    if index > 100:
-                        time_index = True
-
-                a = mavextra.distance_lat_lon(real_x, real_y, line_point1.x, line_point1.y)
-                b = mavextra.distance_lat_lon(real_x, real_y, line_point2.x, line_point2.y)
-                c = mavextra.distance_lat_lon(line_point1.x, line_point1.y, line_point2.x, line_point2.y)
-
-                if c != 0:
-
-                    p = (a + b + c) / 2
-
-                    dis = 2 * math.sqrt(p * (p - a) * (p - b) * (p - c) + 0.01) / c
-
-                    # dis = a + b - c
-                    if dis > 10:
-                        more_dis += 1
-                        if more_dis > 3:
-                            result = 'deviation'
-                            # print(f'dis  {dis}')
-                            break
-                    if dis > 0.5 and dis > pre_dis:
-                        dis_index += 1
-                        if dis_index > 5:
-                            result = 'deviation'
-                            # print(f'dis  {dis}')
-                            break
-                        pre_dis = dis
+                if start_check:
+                    # Is small move?
+                    if moving_dis < 1:
+                        small_move_num += 1
                     else:
-                        dis_index = 0
+                        small_move_num = 0
 
-        th.do_run = False
-        th.join()
-        logging.info(result)
+                    # Point2line distance
+                    deviation_dis = np.abs(np.cross(lpoint1 - lpoint2, lpoint1 - position)) / norm(lpoint2 - lpoint1)
+
+                    # Is deviation ?
+                    if deviation_dis > 10:
+                        deviation_num += 1
+                    else:
+                        deviation_num = 0
+
+                    # Threshold; Judgement
+                    # Timeout
+                    if small_move_num > 10:
+                        time_index = True
+                    # deviation
+                    if deviation_num > 3:
+                        result = 'deviation'
+                        break
+
+            # Timeout Check if stack at one point
+            mid_point_time = time.time()
+            if (mid_point_time - start_time) > mission_time_out_th:
+                result = 'timeout'
+                break
+
+        logging.info(f"Monitor result: {result}")
         return result
 
     def mav_monitor_connect(self):
@@ -342,10 +336,3 @@ class GaSimManager(object):
 
     def sitl_task(self) -> spawn:
         return self._sitl_task
-
-
-def threading_send(task):
-    t = threading.currentThread()
-    while getattr(t, "do_run", True):
-        task.send('status GLOBAL_POSITION_INT \n')
-        time.sleep(0.1)

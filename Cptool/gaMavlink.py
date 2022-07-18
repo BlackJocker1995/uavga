@@ -512,6 +512,7 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
                 message = self._master.recv_match(type=['STATUSTEXT'], blocking=True, timeout=30)
                 if message is None:
                     continue
+                print(message)
                 message = message.to_dict()
                 out_msg = "None"
                 line = message['text']
