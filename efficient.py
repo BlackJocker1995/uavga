@@ -56,7 +56,7 @@ def test3():
     candidate_vars = []
     candidate_objs = []
     pd.set_option('precision', 6)
-    with open('result/pop.pkl', 'rb') as f:
+    with open('result/Ardupilot/pop.pkl', 'rb') as f:
         obj_populations = pickle.load(f)
     for pop in obj_populations:
         pop_v = pop.ObjV

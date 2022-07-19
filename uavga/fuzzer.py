@@ -12,7 +12,7 @@ from sklearn.decomposition import PCA
 
 from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
-from ModelFit.approximate import CyLSTM
+from ModelFit.approximate import CyLSTM, Modeling
 from range.rangegen import ANAGA
 from uavga.problem import ProblemGA
 from uavga.searcher import SearchOptimizer, GAOptimizer
@@ -33,13 +33,15 @@ def split_segment(csv_data):
     return np.array(tmp_split)
 
 
-def random_choie_meanshift(segment_csv, rate=0.25):
+def random_choice_meanshift(segment_csv, rate=0.5):
     # 3D to 2D
     data_class = segment_csv.reshape(
         (-1, segment_csv.shape[1] * segment_csv.shape[2]))
     # Cluster
-    bandwidth = estimate_bandwidth(data_class, quantile=rate)
-    clf = MeanShift(bandwidth=bandwidth)
+    # bandwidth = estimate_bandwidth(data_class, quantile=rate)
+    # clf = MeanShift(bandwidth=bandwidth)
+    bandwidth = estimate_bandwidth(data_class, quantile=rate, n_samples=500)
+    clf = MeanShift(bandwidth=bandwidth, cluster_all=False)
     clf.fit(data_class)
     # Cluster reuslt
     predicted = clf.labels_
@@ -59,20 +61,20 @@ def random_choie_meanshift(segment_csv, rate=0.25):
     # ax.scatter(show[:, 0], show[:, 1], show[:, 2], c=colors, s=5)
     plt.scatter(show[:, 0], show[:, 1], c=colors, s=5)
 
-    plt.show()
+    # plt.show()
     # -------------------------
 
     out = []
     for i in range(max(predicted)):
         index = np.where(predicted == i)[0]
-        col_index = np.random.choice(index, min(index.shape[0], 10))
+        col_index = np.random.choice(index, min(index.shape[0], 5))
         select = segment_csv[col_index]
         out.extend(select)
     out = np.array(out)
     return out
 
 
-def run_fuzzing(csv_data, num=0):
+def run_fuzzing(np_data, num=0):
     """
     Start Fuzzing
     :param num: The number of data to join cluster
@@ -85,24 +87,27 @@ def run_fuzzing(csv_data, num=0):
     gaOptimizer = GAOptimizer()
     gaOptimizer.set_bounds()
     gaOptimizer.set_predictor(predictor)
-    # split status data
-    segment_csv = split_segment(csv_data)
 
+    segment_csv = np_data
     # meanshift cluster
     if num != 0:
         # Random select
         index = np.random.choice(np.arange(segment_csv.shape[0]), num)
         segment_csv = segment_csv[index, :, :]
-    segment_csv = random_choie_meanshift(segment_csv)
+    segment_csv = random_choice_meanshift(segment_csv)
 
     obj_population = []  # 种群
 
     for i, context in enumerate(segment_csv):
+        # Pre process
+        context = np.c_[context, np.zeros((context.shape[0], len(toolConfig.PARAM)))]
+        context = Modeling.series_to_supervised(context, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN).values
+
         gaOptimizer.problem.init_status(context)
         gaOptimizer.start_optimize()
         obj_population.append(gaOptimizer.population)
         print(f'------------------- {i + 1} / {segment_csv.shape[0]} -----------------')
-    with open('result/pop.pkl', 'wb') as f:
+    with open(f'result/{toolConfig.MODE}/pop.pkl', 'wb') as f:
         pickle.dump(obj_population, f)
 
 
@@ -110,7 +115,7 @@ def return_best_n_gen(n=1):
     candidate_vars = []
     candidate_objs = []
 
-    with open('result/pop.pkl', 'rb') as f:
+    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
         obj_populations = pickle.load(f)
     for pop in obj_populations:
         pop_v = pop.ObjV
@@ -142,7 +147,7 @@ def return_random_n_gen(n=1):
     candidate_vars = []
     candidate_objs = []
 
-    with open('result/pop.pkl', 'rb') as f:
+    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
         obj_populations = pickle.load(f)
     for pop in obj_populations:
         pop_v = pop.ObjV

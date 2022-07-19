@@ -71,7 +71,7 @@ def min_max_scaler_param(param_value):
     lb = param_bounds[:, 0]
     ub = param_bounds[:, 1]
     param_value = (param_value - lb) / (ub-lb)
-    return param_value
+    return param_value.astype(np.float)
 
 
 def return_min_max_scaler_param(param_value):

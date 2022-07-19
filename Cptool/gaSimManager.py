@@ -144,7 +144,7 @@ class GaSimManager(object):
         初始化SITL在环
         :return:
         """
-        self.mav_monitor = mavlink_class(14540+int(drone_i),
+        self.mav_monitor = mavlink_class(14540 + (drone_i),
                                          recv_msg_queue=self.sim_msg_queue,
                                          send_msg_queue=self.mav_msg_queue)
         self.mav_monitor.connect()
@@ -189,7 +189,7 @@ class GaSimManager(object):
             if msg is None:
                 continue
             # System status message
-            if msg.getType() == "STATUSTEXT":
+            if msg.get_type() == "STATUSTEXT":
                 line = msg.text
                 if msg.severity == 6:
                     if "landed" in line:
@@ -222,7 +222,7 @@ class GaSimManager(object):
                         result = 'PreArm Failed'
                         break
                 # elif msg.severity == 2
-            elif msg.getType() == "GLOBAL_POSITION_INT":
+            elif msg.get_type() == "GLOBAL_POSITION_INT":
                 # Check deviation
                 position_lat = msg.lat * 1.0e-7
                 position_lon = msg.lon * 1.0e-7

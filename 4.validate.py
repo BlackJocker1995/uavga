@@ -9,6 +9,7 @@ import pandas as pd
 import Cptool
 import ModelFit
 from Cptool.config import toolConfig
+from Cptool.gaMavlink import GaMavlinkAPM
 from Cptool.gaSimManager import GaSimManager
 
 
@@ -24,31 +25,6 @@ if __name__ == '__main__':
     if device is None:
         device = 0
     print(device)
-
-    toolConfig.select_mode("PX4")
-    # The parameters you want to fuzzing, they must be corresponding to the predictor had.
-    param = [
-        "PSC_POSXY_P",
-        "PSC_VELXY_P",
-        "PSC_POSZ_P",
-        "ATC_ANG_RLL_P",
-        "ATC_RAT_RLL_I",
-        "ATC_RAT_RLL_D",
-        "ATC_RAT_RLL_P",
-        "ATC_ANG_PIT_P",
-        "ATC_RAT_PIT_P",
-        "ATC_RAT_PIT_I",
-        "ATC_RAT_PIT_D",
-        "ATC_ANG_YAW_P",
-        "ATC_RAT_YAW_P",
-        "ATC_RAT_YAW_I",
-        "ATC_RAT_YAW_D",
-        "WPNAV_SPEED",
-        "WPNAV_SPEED_UP",
-        "WPNAV_SPEED_DN",
-        "WPNAV_ACCEL",
-        "ANGLE_MAX"
-    ]
 
     # Get Fuzzing result and validate
     candidate_var, candidate_obj = return_random_n_gen(5)
@@ -78,29 +54,32 @@ if __name__ == '__main__':
             if ((exit_data - value_vector).sum(axis=1).abs() < 0.00001).sum() > 0:
                 continue
 
+        configuration = pd.Series(value_vector, index=toolConfig.PARAM).to_dict()
         # start multiple SITL
         manager.start_multiple_sitl(device)
-        manager.mav_monitor_init(device)
+        manager.mav_monitor_init(GaMavlinkAPM, device)
 
         if not manager.mav_monitor_connect():
             manager.stop_sitl()
             continue
-        manager.mav_monitor_set_mission("Cptool/fitCollection.txt", random=False)
-        manager.mav_monitor_set_param(params=param, values=value_vector)
+
+        manager.mav_monitor.set_mission("Cptool/fitCollection.txt", israndom=False)
+        manager.mav_monitor.set_params(configuration)
 
         print(f'======================={index} / {candidate_obj.shape[0]} ==========================')
-        manager.mav_monitor_start_mission()
+        manager.mav_monitor.start_mission()
+
         result = manager.mav_monitor_error()
         # if the result have no instability, skip.
         if result == 'skip':
             results.append(result)
         else:
-            if not os.path.exists(f'result/params.csv'):
-                while not os.access(f"result/params.csv", os.W_OK):
+            if not os.path.exists(f'result/{toolConfig.MODE}/params.csv'):
+                while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
                     continue
                 data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
             else:
-                while not os.access(f"result/params.csv", os.W_OK):
+                while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
                     continue
                 # Add instability resutl
                 tmp_row = value_vector.tolist()
@@ -108,7 +87,7 @@ if __name__ == '__main__':
                 tmp_row.append(result)
 
                 # Write Row
-                with open("result/params.csv", 'a+') as f:
+                with open(f"result/{toolConfig.MODE}/params.csv", 'a+') as f:
                     csv_file = csv.writer(f)
                     csv_file.writerow(tmp_row)
 

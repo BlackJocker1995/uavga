@@ -9,6 +9,7 @@ from tensorflow.python.keras.models import load_model
 
 from Cptool.gaMavlink import GaMavlinkAPM
 from Cptool.config import toolConfig
+from Cptool.mavtool import min_max_scaler_param, load_param, read_unit_from_dict
 from ModelFit.approximate import CyLSTM
 
 
@@ -20,9 +21,7 @@ class Problem:
         self.step = None
 
     def init_status(self, status_data):
-        order = toolConfig.STATUS_ORDER.copy()
-        order = order.remove("TimeS")
-        self.status_data = pd.DataFrame(status_data, columns=order)
+        self.status_data = status_data
 
     def init_predictor(self, predictor):
         self.predictor = predictor
@@ -52,25 +51,25 @@ class ProblemGA(Problem, ea.Problem):
     def aimFunc(self, pop):
         # 得到决策变量矩阵
         x = pop.Phen
-        x = self.reasonable_range(x)
+        x = self.reasonable_range(x).to_numpy()
+        param = min_max_scaler_param(x)
 
+        # Statue change
+        status_data = self.status_data.reshape((1, self.status_data.shape[0],
+                                                -1, toolConfig.DATA_LEN))[:, :, :, :toolConfig.STATUS_LEN]
+        param = param.reshape((param.shape[0], 1, 1, -1))
         # repeat data
-        repeat_status = pd.concat([self.status_data] * x.shape[0]).reset_index(drop=True)
-        repeat_param = pd.DataFrame(np.repeat(x.values, self.status_data.shape[0], axis=0), columns=x.columns)
-        repeat_status[toolConfig.PARAM] = repeat_param
+        repeat_status = np.repeat(status_data, param.shape[0], axis=0)
+        repeat_param = np.repeat(param, repeat_status.shape[2], axis=2)
+        repeat_param = np.repeat(repeat_param, repeat_status.shape[1], axis=1)
 
-        status_step = self.status_data.shape[0]
-        feature_step = self.status_data.shape[0] - toolConfig.INPUT_LEN
-        feature = pd.DataFrame()
-        for i in range(x.shape[0]):
-            status_index = i * status_step
-            feature_index = i * feature_step
-            tmp_status = repeat_status.iloc[status_index:status_index+status_step]
-            # status data to feature data
-            tmp_feature_data = self.predictor.status2feature(tmp_status)
-            feature = pd.concat([feature, tmp_feature_data])
+        # Merge
+        merge_data = np.c_[repeat_status, repeat_param]
+        # Reshape
+        merge_data = merge_data.reshape((merge_data.shape[0], merge_data.shape[1], -1)).astype(np.float)
+
         # create predicted status of this status patch
-        feature_x, feature_y = self.predictor.data_split(feature)
+        feature_x, feature_y = self.predictor.data_split_3d(merge_data)
         # Predict
         predicted_feature = self.predictor.predict_feature(feature_x)
         # reshape to 3D (x number, status patch)
@@ -101,6 +100,6 @@ class ProblemGA(Problem, ea.Problem):
         :param param:
         :return:
         """
-        para_dict = GaMavlinkAPM.load_param()
-        step_unit = GaMavlinkAPM.read_unit_from_dict(para_dict)
+        para_dict = load_param()
+        step_unit = read_unit_from_dict(para_dict)
         return param * step_unit

@@ -24,11 +24,8 @@ from Cptool.mavtool import min_max_scaler_param, min_max_scaler
 
 
 class Modeling(object):
-    def __init__(self, resize: bool = True, debug: bool = False):
+    def __init__(self, debug: bool = False):
         self._model: Sequential = None
-        self.trans: MinMaxScaler = None
-        self._uav_class = toolConfig.MODE
-        self._resize = resize
         self.in_out = f"{toolConfig.INPUT_LEN}_{toolConfig.OUTPUT_LEN}"
         if debug:
             logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
@@ -37,26 +34,27 @@ class Modeling(object):
             logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                                 level=logging.INFO)
 
-    def _cs_to_sl(self, values):
+    @classmethod
+    def cs_to_sl(cls, values):
 
         # ensure all data is float
         values = values.astype('float32')
 
         # normalize features
         if toolConfig.RETRANS:
-            if self.trans is None:
-                self.trans = self.load_trans()
-            values = min_max_scaler(self.trans, values)
+            trans = cls.load_trans()
+            values = min_max_scaler(trans, values)
 
         # frame as supervised learning
-        reframed = self._series_to_supervised(values, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN, True)
+        reframed = cls.series_to_supervised(values, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN, True)
 
-        if not os.path.exists('model/{}/{}_{}'.format(self._uav_class, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN)):
-            os.makedirs('model/{}/{}_{}'.format(self._uav_class, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN))
+        if not os.path.exists('model/{}/{}_{}'.format(toolConfig.MODE, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN)):
+            os.makedirs('model/{}/{}_{}'.format(toolConfig.MODE, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN))
 
         return reframed
 
-    def _series_to_supervised(self, data, n_in=1, n_out=1, dropnan=True):
+    @staticmethod
+    def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
         """
         convert series to supervised learning
         :param data:
@@ -117,7 +115,7 @@ class Modeling(object):
             data = data.drop(["TimeS"], axis=1)
             # extract patch
             values = data.values
-            values = self._cs_to_sl(values)
+            values = self.cs_to_sl(values)
             # if first
             if index == 0:
                 pd_array = values
@@ -169,7 +167,7 @@ class Modeling(object):
         if "TimeS" in status_data.columns:
             status_data = status_data.drop(["TimeS"], axis=1)
         values = status_data.values
-        values = self._cs_to_sl(values)
+        values = self.cs_to_sl(values)
         return values
 
     def predict_feature(self, feature_data):
@@ -193,7 +191,7 @@ class Modeling(object):
         if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}'):
             os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}')
 
-        values = self._cs_to_sl(test)
+        values = self.cs_to_sl(test)
         X, Y = self.data_split(values)
 
         predict_y = self._model.predict(X)
@@ -302,7 +300,7 @@ class Modeling(object):
 
         values = dataset.values
 
-        values = self._cs_to_sl(values)
+        values = self.cs_to_sl(values)
 
         X, Y = self.data_split(values)
 
@@ -433,7 +431,7 @@ class Modeling(object):
 
 class CyLSTM(Modeling):
     def __init__(self, epochs: int, batch_size: int, debug: bool = False):
-        super(CyLSTM, self).__init__(batch_size, debug)
+        super(CyLSTM, self).__init__(debug)
 
         # param
         self.epochs = epochs
@@ -454,6 +452,24 @@ class CyLSTM(Modeling):
         # reshape input to be 3D [samples, timesteps, features]
         X = X.reshape((X.shape[0], toolConfig.INPUT_LEN, toolConfig.DATA_LEN))
         Y = Y.reshape((Y.shape[0], toolConfig.OUTPUT_DATA_LEN))
+
+        return X, Y
+
+    def data_split_3d(self, values):
+        values = values.values if type(values) is pd.DataFrame else values
+
+        # split into input and outputs
+        X = values[:, :, :toolConfig.INPUT_DATA_LEN]
+        # cut off parameter value in y
+        y = values[:, :, toolConfig.INPUT_DATA_LEN:-toolConfig.PARAM_LEN]
+        # # To 3D
+        # y = y.reshape((y.shape[0], toolConfig.OUTPUT_LEN, -1))
+        # # Reduce parameter length and reshape to 2D
+        # Y = y[:, :, :-toolConfig.PARAM_LEN].reshape((y.shape[0], toolConfig.OUTPUT_DATA_LEN))
+
+        # reshape input to be 3D [samples, timesteps, features]
+        X = X.reshape((-1, toolConfig.INPUT_LEN, toolConfig.DATA_LEN))
+        Y = y.reshape((-1, toolConfig.OUTPUT_DATA_LEN))
 
         return X, Y
 

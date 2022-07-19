@@ -10,8 +10,9 @@ from ModelFit.approximate import CyLSTM, Modeling
 Train LSTM Model
 """
 if __name__ == '__main__':
+    toolConfig.select_mode("PX4")
 
-    pd_csv = CyLSTM.merge_file_data(f"{toolConfig.ARDUPILOT_LOG_PATH}/logs/bin_changed/csv")
+    pd_csv = CyLSTM.merge_file_data(f"{toolConfig.ARDUPILOT_LOG_PATH}/logs/ulg_changed/csv")
 
     np_data = pd_csv.to_numpy()[:, :toolConfig.STATUS_LEN]
 
