@@ -3,15 +3,16 @@ import logging
 import pickle
 import random
 from abc import abstractmethod
-
+import scipy.cluster.hierarchy as hcluster
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.cluster import MeanShift, estimate_bandwidth
+from sklearn.cluster import MeanShift, estimate_bandwidth, DBSCAN
 from sklearn.decomposition import PCA
 
 from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
+from Cptool.mavtool import min_max_scaler_param
 from ModelFit.approximate import CyLSTM, Modeling
 from range.rangegen import ANAGA
 from uavga.problem import ProblemGA
@@ -33,23 +34,18 @@ def split_segment(csv_data):
     return np.array(tmp_split)
 
 
-def random_choice_meanshift(segment_csv, rate=0.5):
+def random_choice_dbscan(segment_csv, eps=0.3):
     # 3D to 2D
     data_class = segment_csv.reshape(
         (-1, segment_csv.shape[1] * segment_csv.shape[2]))
     # Cluster
-    # bandwidth = estimate_bandwidth(data_class, quantile=rate)
-    # clf = MeanShift(bandwidth=bandwidth)
-    bandwidth = estimate_bandwidth(data_class, quantile=rate, n_samples=500)
-    clf = MeanShift(bandwidth=bandwidth, cluster_all=False)
-    clf.fit(data_class)
+    clf = DBSCAN(eps=eps, min_samples=10).fit(data_class)
     # Cluster reuslt
     predicted = clf.labels_
     logging.info(f'Meanshift class: {max(predicted)}')
+
     # ------------- draw ------------------#
     c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
-    # c = np.random.rand(max(predicted) + 1, 1)
-    # c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
 
     colors = [c[i] for i in predicted]
 
@@ -61,13 +57,52 @@ def random_choice_meanshift(segment_csv, rate=0.5):
     # ax.scatter(show[:, 0], show[:, 1], show[:, 2], c=colors, s=5)
     plt.scatter(show[:, 0], show[:, 1], c=colors, s=5)
 
-    # plt.show()
+    plt.show()
     # -------------------------
 
     out = []
     for i in range(max(predicted)):
         index = np.where(predicted == i)[0]
-        col_index = np.random.choice(index, min(index.shape[0], 5))
+        col_index = np.random.choice(index, min(index.shape[0], toolConfig.CLUSTER_CHOICE_NUM))
+        select = segment_csv[col_index]
+        out.extend(select)
+    out = np.array(out)
+    return out
+
+
+def random_choice_hierarchical(segment_csv, rate=0.5):
+    # 3D to 2D
+    data_class = segment_csv.reshape(
+        (-1, segment_csv.shape[1] * segment_csv.shape[2]))
+
+    # clustering
+    thresh = 0.3
+    predicted = hcluster.fclusterdata(data_class, thresh, criterion="distance")
+    # Cluster reuslt
+    logging.info(f'Meanshift class: {max(predicted)}')
+    # ------------- draw ------------------#
+    for i in range(max(predicted)):
+        index = np.where(predicted == i)[0]
+
+    c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
+
+    colors = [c[i] for i in predicted]
+
+    pca = PCA(n_components=2, svd_solver='arpack')
+    show = pca.fit_transform(data_class)
+
+    fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(show[:, 0], show[:, 1], show[:, 2], c=colors, s=5)
+    plt.scatter(show[:, 0], show[:, 1], c=colors, s=5)
+
+    plt.show()
+    # -------------------------
+
+    out = []
+    for i in range(max(predicted)):
+        index = np.where(predicted == i)[0]
+        col_index = np.random.choice(index, min(index.shape[0], toolConfig.CLUSTER_CHOICE_NUM))
         select = segment_csv[col_index]
         out.extend(select)
     out = np.array(out)
@@ -94,7 +129,7 @@ def run_fuzzing(np_data, num=0):
         # Random select
         index = np.random.choice(np.arange(segment_csv.shape[0]), num)
         segment_csv = segment_csv[index, :, :]
-    segment_csv = random_choice_meanshift(segment_csv)
+    segment_csv = random_choice_dbscan(segment_csv)
 
     obj_population = []  # 种群
 
@@ -106,6 +141,7 @@ def run_fuzzing(np_data, num=0):
         gaOptimizer.problem.init_status(context)
         gaOptimizer.start_optimize()
         obj_population.append(gaOptimizer.population)
+
         print(f'------------------- {i + 1} / {segment_csv.shape[0]} -----------------')
     with open(f'result/{toolConfig.MODE}/pop.pkl', 'wb') as f:
         pickle.dump(obj_population, f)
@@ -152,18 +188,18 @@ def return_random_n_gen(n=1):
     for pop in obj_populations:
         pop_v = pop.ObjV
         pop_p = pop.Phen
-
+        # Unique
         candidate_var_index = np.unique(pop_p, axis=0, return_index=True)[1]
-
+        # Choice
         pop_v = pop_v[candidate_var_index]
         pop_p = pop_p[candidate_var_index]
-
+        #
         candidate = [-1] * pop_v
-
+        # Sort
         candidate_index = np.argsort(candidate.reshape(-1))
         pop_v = pop_v[candidate_index].reshape((-1, 1))
         pop_p = pop_p[candidate_index].reshape((-1, 20))
-
+        #
         if n != 0:
             candidate_var = pop_v[[1, 200, 500]]
             candidate_obj = pop_p[[1, 200, 500], :]
@@ -171,6 +207,53 @@ def return_random_n_gen(n=1):
 
         candidate_vars.extend(candidate_var)
         candidate_objs.extend(candidate_obj)
+    return candidate_vars, candidate_objs
+
+
+def return_cluster_thres_gen(thres=0.4):
+    candidate_vars = []
+    candidate_objs = []
+
+    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
+        obj_populations = pickle.load(f)
+    for pop in obj_populations:
+        pop_v = pop.ObjV
+        pop_p = pop.Phen
+        # Unique
+        candidate_var_index = np.unique(pop_p, axis=0, return_index=True)[1]
+        # Choice
+        pop_v = pop_v[candidate_var_index]
+        pop_p = pop_p[candidate_var_index]
+
+        # To normal value
+        normal_pop_p = ProblemGA.reasonable_range_static(pop_p)
+        normalize_pop_p = min_max_scaler_param(normal_pop_p)
+
+        predicted = hcluster.fclusterdata(normalize_pop_p, thres, criterion="distance")
+        # ------------- draw ------------------#
+        # c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
+        #
+        # colors = [c[i] for i in predicted]
+        #
+        # pca = PCA(n_components=2, svd_solver='arpack')
+        # show = pca.fit_transform(pop_p)
+        #
+        # fig = plt.figure()
+        # # ax = fig.add_subplot(111, projection='3d')
+        # # ax.scatter(show[:, 0], show[:, 1], show[:, 2], c=colors, s=5)
+        # plt.scatter(show[:, 0], show[:, 1], c=colors, s=5)
+        #
+        # plt.show()
+        # -------------------------
+        for i in range(max(predicted)):
+            index = np.where(predicted == i)[0]
+            col_index = np.random.choice(index, min(index.shape[0], toolConfig.CLUSTER_CHOICE_NUM))
+            if len(col_index) > 0:
+                candidate_vars.extend(pop_v[col_index])
+                candidate_objs.extend(normal_pop_p[col_index])
+    # Array
+    candidate_objs = np.array(candidate_objs).astype(np.float)
+    candidate_vars = np.array(candidate_vars).astype(np.float)
     return candidate_vars, candidate_objs
 
 

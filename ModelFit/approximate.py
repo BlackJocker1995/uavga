@@ -485,11 +485,11 @@ class CyLSTM(Modeling):
                             verbose=2,
                             shuffle=True)
         if num is not None:
-            model.save(f'model/{self._uav_class}/{self.in_out}/lstm{num}.h5')
+            model.save(f'model/{toolConfig.MODE}/{self.in_out}/lstm{num}.h5')
             plt.plot(history.history['loss'], label=f'train-{num}')
             plt.plot(history.history['val_loss'], label=f'validation-{num}')
         else:
-            model.save(f'model/{self._uav_class}/{self.in_out}/lstm.h5')
+            model.save(f'model/{toolConfig.MODE}/{self.in_out}/lstm.h5')
             plt.plot(history.history['loss'], label='train')
             plt.plot(history.history['val_loss'], label='validation')
         # plot history
@@ -498,7 +498,7 @@ class CyLSTM(Modeling):
         plt.xlabel('Epochs Time', fontsize=18)
         plt.legend(prop=axis_font)
         # plt.show()
-        plt.savefig(f'model/{self._uav_class}/{self.in_out}/loss.pdf')
+        plt.savefig(f'model/{toolConfig.MODE}/{self.in_out}/loss.pdf')
         return model
 
     def _build_model(self, train_shape: np.shape):
@@ -574,11 +574,11 @@ class CyTCN(Modeling):
                             shuffle=True)
 
         if num is not None:
-            model.save(f'model/{self._uav_class}/{self.in_out}/tcn{num}.h5')
+            model.save(f'model/{toolConfig.MODE}/{self.in_out}/tcn{num}.h5')
             plt.plot(history.history['loss'], label=f'train-{num}')
             plt.plot(history.history['val_loss'], label=f'validation-{num}')
         else:
-            model.save(f'model/{self._uav_class}/{self.in_out}/tcn.h5')
+            model.save(f'model/{toolConfig.MODE}/{self.in_out}/tcn.h5')
             plt.plot(history.history['loss'], label='train')
             plt.plot(history.history['val_loss'], label='validation')
         # plot history
@@ -587,7 +587,7 @@ class CyTCN(Modeling):
         plt.xlabel('Epochs Time', fontsize=18)
         plt.legend(prop=axis_font)
         # plt.show()
-        plt.savefig(f'model/{self._uav_class}/{self.in_out}/tcn_loss.pdf')
+        plt.savefig(f'model/{toolConfig.MODE}/{self.in_out}/tcn_loss.pdf')
         return model
 
     def _build_model(self, train_shape: np.shape):

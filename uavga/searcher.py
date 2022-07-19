@@ -42,7 +42,7 @@ class GAOptimizer(SearchOptimizer):
         varTypes = [1] * Dim  # 初始化varTypes（决策变量的类型，元素为0表示对应的变量是连续的；1表示是离散的）
         lb = self.sub_value_range[:, 0] // self.step_unit  # 决策变量下界
         ub = self.sub_value_range[:, 1] // self.step_unit  # 决策变量上界
-        lbin = [1] * Dim  # 决策变量下边界（0表示不包含该变量的下边界，1表示包含）
+        lbin = [0] * Dim  # 决策变量下边界（0表示不包含该变量的下边界，1表示包含）
         ubin = [1] * Dim  # 决策变量上边界（0表示不包含该变量的上边界，1表示包含）
 
         # 调用父类构造方法完成实例化

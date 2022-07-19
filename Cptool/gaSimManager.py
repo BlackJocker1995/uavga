@@ -144,7 +144,7 @@ class GaSimManager(object):
         初始化SITL在环
         :return:
         """
-        self.mav_monitor = mavlink_class(14540 + (drone_i),
+        self.mav_monitor = mavlink_class(14540 + int(drone_i),
                                          recv_msg_queue=self.sim_msg_queue,
                                          send_msg_queue=self.mav_msg_queue)
         self.mav_monitor.connect()
@@ -175,7 +175,9 @@ class GaSimManager(object):
         loader.load('Cptool/fitCollection.txt')
         #
         lpoint1 = loader.wpoints[-1]
+        lpoint1 = np.array([lpoint1.x, lpoint1.y])
         lpoint2 = loader.wpoints[2]
+        lpoint2 = np.array([lpoint2.x, lpoint2.y])
         pre_location = loader.wpoints[0]
         # logger
         small_move_num = 0
@@ -192,7 +194,7 @@ class GaSimManager(object):
             if msg.get_type() == "STATUSTEXT":
                 line = msg.text
                 if msg.severity == 6:
-                    if "landed" in line:
+                    if "Disarming" in line:
                         # if successful landed, break the loop and return true
                         logging.info(f"Successful break the loop.")
                         return True
@@ -203,6 +205,7 @@ class GaSimManager(object):
                             mission_task = int(mission_task[0])
                             lpoint1 = lpoint2
                             lpoint2 = loader.wpoints[mission_task]
+                            lpoint2 = np.array([lpoint2.x, lpoint2.y])
                             # Switch Flag as mission before are not moving
                             if mission_task == 2:
                                 start_check = True
@@ -242,7 +245,11 @@ class GaSimManager(object):
                         small_move_num = 0
 
                     # Point2line distance
-                    deviation_dis = np.abs(np.cross(lpoint1 - lpoint2, lpoint1 - position)) / norm(lpoint2 - lpoint1)
+                    if (lpoint2 - lpoint1).sum() == 0:
+                        deviation_dis = np.abs(np.cross(lpoint1 - lpoint2,
+                                                        lpoint1 - position)) / norm(lpoint2 - lpoint1)
+                    else:
+                        deviation_dis = 0
 
                     # Is deviation ?
                     if deviation_dis > 10:

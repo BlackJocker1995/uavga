@@ -1,5 +1,6 @@
 import argparse
 import csv
+import logging
 import os
 import time
 
@@ -14,7 +15,7 @@ from Cptool.gaSimManager import GaSimManager
 
 
 # from Cptool.gaSimManager import GaSimManager
-from uavga.fuzzer import return_random_n_gen
+from uavga.fuzzer import return_random_n_gen, return_cluster_thres_gen
 
 if __name__ == '__main__':
 
@@ -27,14 +28,13 @@ if __name__ == '__main__':
     print(device)
 
     # Get Fuzzing result and validate
-    candidate_var, candidate_obj = return_random_n_gen(5)
+    candidate_var, candidate_obj = return_cluster_thres_gen(0.35)
     candidate_obj = np.array(candidate_obj, dtype=float).round(8)
     candidate_var = np.array(candidate_var, dtype=float).round(8)
 
     # Simulator validation
     manager = GaSimManager(debug=toolConfig.DEBUG)
 
-    results = []
     i = 0
     # Random order
     rand_index = (np.arange(candidate_obj.shape[0]))
@@ -44,6 +44,7 @@ if __name__ == '__main__':
 
     # Loop to validate configurations with SITL simulator
     for index, vars, value_vector in zip(np.arange(candidate_obj.shape[0]), candidate_var, candidate_obj):
+        print(f'======================={index} / {candidate_obj.shape[0]} ==========================')
         # if exist file, append new data in the end.
         if os.path.exists(f'result/{toolConfig.MODE}/params.csv'):
             while not os.access(f"result/{toolConfig.MODE}/params.csv", os.R_OK):
@@ -66,30 +67,28 @@ if __name__ == '__main__':
         manager.mav_monitor.set_mission("Cptool/fitCollection.txt", israndom=False)
         manager.mav_monitor.set_params(configuration)
 
-        print(f'======================={index} / {candidate_obj.shape[0]} ==========================')
         manager.mav_monitor.start_mission()
 
         result = manager.mav_monitor_error()
-        # if the result have no instability, skip.
-        if result == 'skip':
-            results.append(result)
-        else:
-            if not os.path.exists(f'result/{toolConfig.MODE}/params.csv'):
-                while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
-                    continue
-                data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
-            else:
-                while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
-                    continue
-                # Add instability resutl
-                tmp_row = value_vector.tolist()
-                tmp_row.append(vars[0])
-                tmp_row.append(result)
 
-                # Write Row
-                with open(f"result/{toolConfig.MODE}/params.csv", 'a+') as f:
-                    csv_file = csv.writer(f)
-                    csv_file.writerow(tmp_row)
+        # if the result have no instability, skip.
+        if not os.path.exists(f'result/{toolConfig.MODE}/params.csv'):
+            while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
+                continue
+            data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
+        else:
+            while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
+                continue
+            # Add instability result
+            tmp_row = value_vector.tolist()
+            tmp_row.append(vars[0])
+            tmp_row.append(result)
+
+            # Write Row
+            with open(f"result/{toolConfig.MODE}/params.csv", 'a+') as f:
+                csv_file = csv.writer(f)
+                csv_file.writerow(tmp_row)
+                logging.debug("Write row to params.csv.")
 
         manager.stop_sitl()
         i += 1

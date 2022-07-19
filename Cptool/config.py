@@ -19,7 +19,7 @@ class ToolConfig:
         # Flight home (None, AVC_plane)
         self.__dict__["HOME"] = "AVC_plane"  # "AVC_plane"
         # Output Debug Message
-        self.__dict__["DEBUG"] = True
+        self.__dict__["DEBUG"] = False
         # Wind Speed range
         self.__dict__["WIND_RANGE"] = [8, 10.7]
         # Airsim Windows size
@@ -36,6 +36,8 @@ class ToolConfig:
         # self.__dict__["AIRSIM_PATH"] = "/media/rain/data/airsim/Blocks/LinuxNoEditor/Blocks.sh"
         # PX4 LOG Path
         self.__dict__["PX4_RUN_PATH"] = '/home/rain/PX4-Autopilot'
+
+        self.__dict__["CLUSTER_CHOICE_NUM"] = 10
 
     def __setattr__(self, name, value):
         if name in self.__dict__:
