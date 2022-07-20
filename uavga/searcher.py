@@ -55,7 +55,7 @@ class GAOptimizer(SearchOptimizer):
         self.algorithm = None
 
     def start_optimize(self):
-        NINDs = 1000
+        NINDs = 500
         Encoding = 'RI'  # 编码方式
         Field = ea.crtfld(Encoding, self.problem.varTypes, self.problem.ranges,
                           self.problem.borders)  # 创建区域描述器

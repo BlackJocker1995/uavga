@@ -34,15 +34,15 @@ def split_segment(csv_data):
     return np.array(tmp_split)
 
 
-def random_choice_dbscan(segment_csv, eps=0.3):
+def random_choice_dbscan(segment_csv, eps=0.5):
     # 3D to 2D
     data_class = segment_csv.reshape(
         (-1, segment_csv.shape[1] * segment_csv.shape[2]))
     # Cluster
-    clf = DBSCAN(eps=eps, min_samples=10).fit(data_class)
+    clf = DBSCAN(eps=eps, min_samples=5).fit(data_class)
     # Cluster reuslt
     predicted = clf.labels_
-    logging.info(f'Meanshift class: {max(predicted)}')
+    logging.info(f'DBSCAN class: {max(predicted)}')
 
     # ------------- draw ------------------#
     c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))

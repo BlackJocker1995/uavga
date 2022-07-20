@@ -14,7 +14,7 @@ import numpy as np
 import pexpect
 from numpy.dual import norm
 from pexpect import spawn
-from pymavlink import mavextra, mavwp
+from pymavlink import mavextra, mavwp, mavutil
 
 from Cptool.gaMavlink import GaMavlinkAPM, DroneMavlink
 from Cptool.config import toolConfig
@@ -131,6 +131,9 @@ class GaSimManager(object):
             os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin")
         if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm"):
             os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm")
+        if os.path.exists(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016") \
+                and toolConfig.MODE == "PX4":
+            os.remove(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016")
 
         cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py --location=AVC_plane " \
                   f"--out=127.0.0.1:1455{drone_i} --out=127.0.0.1:1454{drone_i} " \
@@ -190,6 +193,122 @@ class GaSimManager(object):
             msg = self.mav_monitor.get_msg(["STATUSTEXT", "GLOBAL_POSITION_INT"])
             if msg is None:
                 continue
+            # System status message
+            if msg.get_type() == "STATUSTEXT":
+                line = msg.text
+                if msg.severity == 6:
+                    if "Disarming" in line:
+                        # if successful landed, break the loop and return true
+                        logging.info(f"Successful break the loop.")
+                        return True
+                    elif "Mission:" in line:
+                        # Update Current mission
+                        mission_task = re.findall('Mission: ([0-9]+) [WP|Land]', line)
+                        if len(mission_task) > 0:
+                            mission_task = int(mission_task[0])
+                            lpoint1 = lpoint2
+                            lpoint2 = loader.wpoints[mission_task]
+                            lpoint2 = np.array([lpoint2.x, lpoint2.y])
+                            # Switch Flag as mission before are not moving
+                            if mission_task == 2:
+                                start_check = True
+
+                elif msg.severity == 2 or msg.severity == 0:
+                    # Appear error, break loop and return false
+                    if "SIM Hit ground at" in line:
+                        result = 'crash'
+                        break
+                    elif "Potential Thrust Loss" in line:
+                        result = 'Thrust Loss'
+                        break
+                    elif "Crash" in line:
+                        result = 'crash'
+                        break
+                    elif "PreArm" in line:
+                        result = 'PreArm Failed'
+                        break
+                # elif msg.severity == 2
+            elif msg.get_type() == "GLOBAL_POSITION_INT":
+                # Check deviation
+                position_lat = msg.lat * 1.0e-7
+                position_lon = msg.lon * 1.0e-7
+                position = (position_lon, position_lat)
+                # Calculate distance
+                moving_dis = mavextra.distance_lat_lon(pre_location.x, pre_location.y,
+                                                       position_lat, position_lon)
+                # Update position
+                pre_location.x = position_lat
+                pre_location.y = position_lon
+
+                if start_check:
+                    # Is small move?
+                    if moving_dis < 1:
+                        small_move_num += 1
+                    else:
+                        small_move_num = 0
+
+                    # Point2line distance
+                    if (lpoint2 - lpoint1).sum() == 0:
+                        deviation_dis = np.abs(np.cross(lpoint1 - lpoint2,
+                                                        lpoint1 - position)) / norm(lpoint2 - lpoint1)
+                    else:
+                        deviation_dis = 0
+
+                    # Is deviation ?
+                    if deviation_dis > 10:
+                        deviation_num += 1
+                    else:
+                        deviation_num = 0
+
+                    # Threshold; Judgement
+                    # Timeout
+                    if small_move_num > 10:
+                        time_index = True
+                    # deviation
+                    if deviation_num > 3:
+                        result = 'deviation'
+                        break
+
+            # Timeout Check if stack at one point
+            mid_point_time = time.time()
+            if (mid_point_time - start_time) > mission_time_out_th:
+                result = 'timeout'
+                break
+
+        logging.info(f"Monitor result: {result}")
+        return result
+
+    def mav_monitor_error_px4(self):
+        """
+        monitor error during the flight
+        :return:
+        """
+        logging.info(f'Start error monitor.')
+        # Setting
+        mission_time_out_th = 180
+        result = 'pass'
+        # Waypoint
+        loader = mavwp.MAVWPLoader()
+        loader.load('Cptool/fitCollection_px4.txt')
+        #
+        lpoint1 = loader.wpoints[-1]
+        lpoint1 = np.array([lpoint1.x, lpoint1.y])
+        lpoint2 = loader.wpoints[2]
+        lpoint2 = np.array([lpoint2.x, lpoint2.y])
+        pre_location = loader.wpoints[0]
+        # logger
+        small_move_num = 0
+        deviation_num = 0
+        # Flag
+        start_check = False
+
+        start_time = time.time()
+        while True:
+            self.mav_monitor.gcs_msg_request()
+            msg = self.mav_monitor.get_msg(["STATUSTEXT", "GLOBAL_POSITION_INT"])
+            if msg is None:
+                continue
+            print(msg)
             # System status message
             if msg.get_type() == "STATUSTEXT":
                 line = msg.text

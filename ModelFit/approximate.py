@@ -87,7 +87,7 @@ class Modeling(object):
     def _train_valid_split(self, values):
         # split into train and test sets
         X, Y = self.data_split(values)
-        train_X, valid_X, train_Y, valid_Y = train_test_split(X, Y, test_size=0.2, random_state=0)
+        train_X, valid_X, train_Y, valid_Y = train_test_split(X, Y, test_size=0.2, random_state=2022)
 
         logging.info(f"Shape: {train_X.shape}, {train_Y.shape}, {valid_X.shape}, {valid_Y.shape}")
 

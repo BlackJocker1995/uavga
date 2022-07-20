@@ -1,6 +1,7 @@
 import argparse
 import csv
 import os
+import pickle
 import time
 
 import numpy as np
@@ -16,5 +17,6 @@ from uavga.fuzzer import run_fuzzing
 
 if __name__ == '__main__':
     toolConfig.select_mode("PX4")
-    csv_data = pd.read_csv(f"model/{toolConfig.MODE}/raw_test.csv")
-    run_fuzzing(csv_data, num=100)
+    with open(f"model/{toolConfig.MODE}/raw_test.pkl", 'rb') as f:
+        np_data = pickle.load(f)
+    run_fuzzing(np_data)

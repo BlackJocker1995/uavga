@@ -51,9 +51,6 @@ class DroneMavlink:
         :return:
         """
         while True:
-            if toolConfig.MODE == "PX4":
-                self._master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
-                                                mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
             message = self._master.recv_match(type=['STATUSTEXT'], blocking=True, timeout=30)
             # message = self._master.recv_match(blocking=True, timeout=30)
             message = message.to_dict()["text"]
@@ -120,9 +117,13 @@ class DroneMavlink:
             logging.warning('Mavlink handler is not connect!')
             raise ValueError('Connect at first!')
         # self._master.set_mode_loiter()
-
-        self._master.arducopter_arm()
-        self._master.set_mode_auto()
+        if toolConfig.MODE == "PX4":
+            self._master.set_mode_auto()
+            self._master.arducopter_arm()
+            self._master.set_mode_auto()
+        else:
+            self._master.arducopter_arm()
+            self._master.set_mode_auto()
 
         logging.info('Arm and start.')
 
@@ -236,6 +237,10 @@ class DroneMavlink:
                                                0.000000)
         msg = self._master.recv_match(type=['COMMAND_ACK'], blocking=True, timeout=30)
         logging.debug(f"Home set callback: {msg.command}")
+
+    def gcs_msg_request(self):
+        self._master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
+                                        mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
 
     def wait_complete(self):
         pass
@@ -577,20 +582,6 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
     def __init__(self, port, recv_msg_queue=None, send_msg_queue=None):
         super(GaMavlinkPX4, self).__init__(port, recv_msg_queue, send_msg_queue)
 
-    def start_mission(self):
-        """
-        Arm and start the flight
-        :return:
-        """
-        if not self._master:
-            logging.warning('Mavlink handler is not connect!')
-            raise ValueError('Connect at first!')
-        # self._master.set_mode_loiter()
-        self._master.set_mode_auto()
-        self._master.arducopter_arm()
-        self._master.set_mode_auto()
-
-        logging.info('Arm and start.')
 
     def wait_complete(self, remain_fail=False, timeout=60 * 5):
         if not self._master:
@@ -599,9 +590,7 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
             timeout_start = time.time()
             while time.time() < timeout_start + timeout:
                 # PX4 needs manual send the heartbeat of GCS
-                if toolConfig.MODE == "PX4":
-                    self._master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
-                                                    mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
+                self.gcs_msg_request()
                 message = self._master.recv_match(type=['STATUSTEXT'], blocking=False, timeout=30)
                 if message is None:
                     continue
@@ -684,9 +673,13 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
                                                                           "accelerometer_m_s2[2]"]]
         mag = pd.DataFrame(ulog.get_dataset('sensor_mag').data)[["timestamp", "x", "y", "z"]]
         vibe = pd.DataFrame(ulog.get_dataset('sensor_accel').data)[["timestamp", "x", "y", "z"]]
+        # Param
         param = pd.Series(ulog.initial_parameters)
-        # select parameters
         param = param[toolConfig.PARAM]
+        # select parameters
+        for t, name, value in ulog.changed_parameters:
+            if name in toolConfig.PARAM:
+                param[name] = round(value, 5)
 
         att.columns = ["TimeS", "Roll", "Pitch", "Yaw"]
         rate.columns = ["TimeS", "RateRoll", "RatePitch", "RateYaw"]
