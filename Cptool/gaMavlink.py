@@ -125,7 +125,7 @@ class DroneMavlink:
             self._master.arducopter_arm()
             self._master.set_mode_auto()
 
-        logging.info('Arm and start.')
+        logging.info('Try to arm and start.')
 
     def set_param(self, param: str, value: float) -> None:
         """
@@ -241,6 +241,8 @@ class DroneMavlink:
     def gcs_msg_request(self):
         self._master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
                                         mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
+        # self._master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER,
+        #                                 mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
 
     def wait_complete(self):
         pass
@@ -581,7 +583,6 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
 
     def __init__(self, port, recv_msg_queue=None, send_msg_queue=None):
         super(GaMavlinkPX4, self).__init__(port, recv_msg_queue, send_msg_queue)
-
 
     def wait_complete(self, remain_fail=False, timeout=60 * 5):
         if not self._master:

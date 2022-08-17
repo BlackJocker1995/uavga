@@ -125,7 +125,7 @@
       1.0
     ],
     "step": 0.01,
-    "default": 0.009
+    "default": 0.01
   },
   "ATC_RAT_YAW_D": {
     "range": [

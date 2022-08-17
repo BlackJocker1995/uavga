@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 import numpy as np
-from range.rangegen import ANAGA
 
 
 def satisfy_range(panda_m, top, button):
@@ -42,11 +41,6 @@ def best_summary(UavConfig):
     print(bincout)
     return bincout
 
-
-def find_range(UavConfig, file):
-    csv_file = pd.read_csv(file, header=0)
-    ga = ANAGA(UavConfig, UavConfig.get_participate_param(), csv_file)
-    ga.run()
 
 
 

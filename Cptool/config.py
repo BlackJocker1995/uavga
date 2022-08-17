@@ -110,25 +110,25 @@ class ToolConfig:
 
             # TODO: px4 data
             self.__dict__["PARAM"] = [
-                # "MC_ROLL_P",
-                # "MC_PITCH_P",
-                # "MC_YAW_P",
-                # "MC_YAW_WEIGHT",
+                "MC_ROLL_P",
+                "MC_PITCH_P",
+                "MC_YAW_P",
+                "MC_YAW_WEIGHT",
                 "MPC_XY_P",
-                # "MPC_Z_P",
-                # "MC_PITCHRATE_P",
-                # "MC_ROLLRATE_P",
-                # # "MC_ROLLRATE_MAX",
-                # "MC_YAWRATE_P",
-                # # "MPC_THR_MIN",
-                # # "MPC_THR_MAX",
-                # "MPC_TILTMAX_AIR",
-                # "MIS_YAW_ERR",
-                # # "MPC_XY_VEL_MAX",
-                # # "MC_PITCHRATE_MAX",
-                # "MPC_Z_VEL_MAX_DN",
-                # "MPC_Z_VEL_MAX_UP",
-                # "MPC_TKO_SPEED"
+                "MPC_Z_P",
+                "MC_PITCHRATE_P",
+                "MC_ROLLRATE_P",
+                # "MC_ROLLRATE_MAX",
+                "MC_YAWRATE_P",
+                # "MPC_THR_MIN",
+                # "MPC_THR_MAX",
+                "MPC_TILTMAX_AIR",
+                "MIS_YAW_ERR",
+                # "MPC_XY_VEL_MAX",
+                # "MC_PITCHRATE_MAX",
+                "MPC_Z_VEL_MAX_DN",
+                "MPC_Z_VEL_MAX_UP",
+                "MPC_TKO_SPEED"
             ]
 
         ######################

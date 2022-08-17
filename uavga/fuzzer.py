@@ -14,7 +14,6 @@ from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
 from Cptool.mavtool import min_max_scaler_param
 from ModelFit.approximate import CyLSTM, Modeling
-from range.rangegen import ANAGA
 from uavga.problem import ProblemGA
 from uavga.searcher import SearchOptimizer, GAOptimizer
 
@@ -129,7 +128,7 @@ def run_fuzzing(np_data, num=0):
         # Random select
         index = np.random.choice(np.arange(segment_csv.shape[0]), num)
         segment_csv = segment_csv[index, :, :]
-    segment_csv = random_choice_dbscan(segment_csv)
+    segment_csv = random_choice_dbscan(segment_csv, eps=0.3)
 
     obj_population = []  # 种群
 

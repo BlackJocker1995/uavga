@@ -2,6 +2,7 @@ import argparse
 import csv
 import logging
 import os
+import pickle
 import time
 
 import numpy as np
@@ -27,10 +28,8 @@ if __name__ == '__main__':
         device = 0
     print(device)
 
-    # Get Fuzzing result and validate
-    candidate_var, candidate_obj = return_cluster_thres_gen(0.35)
-    candidate_obj = np.array(candidate_obj, dtype=float).round(8)
-    candidate_var = np.array(candidate_var, dtype=float).round(8)
+    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
+        candidate_obj, candidate_var = pickle.load(f)
 
     # Simulator validation
     manager = GaSimManager(debug=toolConfig.DEBUG)

@@ -2,6 +2,7 @@ import argparse
 import csv
 import logging
 import os
+import pickle
 import time
 
 import numpy as np
@@ -30,9 +31,8 @@ if __name__ == '__main__':
     toolConfig.select_mode("PX4")
 
     # Get Fuzzing result and validate
-    candidate_var, candidate_obj = return_cluster_thres_gen(0.35)
-    candidate_obj = np.array(candidate_obj, dtype=float).round(8)
-    candidate_var = np.array(candidate_var, dtype=float).round(8)
+    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
+        candidate_obj, candidate_var = pickle.load(f)
 
     # Simulator validation
     manager = GaSimManager(debug=toolConfig.DEBUG)
@@ -69,17 +69,19 @@ if __name__ == '__main__':
         manager.mav_monitor.set_mission("Cptool/fitCollection_px4.txt", israndom=False)
         manager.mav_monitor.set_params(configuration)
 
+        time.sleep(2)
         manager.mav_monitor.start_mission()
-
-        result = manager.mav_monitor_error_px4()
+        result = manager.mav_monitor_error()
 
         # if the result have no instability, skip.
         if not os.path.exists(f'result/{toolConfig.MODE}/params.csv'):
             while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
+                time.sleep(0.1)
                 continue
             data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
         else:
             while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
+                time.sleep(0.1)
                 continue
             # Add instability result
             tmp_row = value_vector.tolist()
@@ -94,6 +96,7 @@ if __name__ == '__main__':
 
         manager.stop_sitl()
         i += 1
+        time.sleep(1)
 
     localtime = time.asctime(time.localtime(time.time()))
     # Mail notification plugin

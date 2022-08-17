@@ -3,23 +3,54 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
+from Cptool.config import toolConfig
 from Cptool.gaMavlink import GaMavlinkAPM
-from range.rangegeat import ANAProblem
+from Cptool.mavtool import load_param, select_sub_dict, read_unit_from_dict, get_default_values, read_range_from_dict
+from range.rangeproblem import RangeProblem, GARangeProblem
 
-class ANAGA(object):
-    def __init__(self, param_choice, result_data):
-        para_dict = GaMavlinkAPM.load_param()
-        # 获得sub 数据
-        param_choice_dict = GaMavlinkAPM.select_sub_dict(para_dict, param_choice)
-        step_unit = GaMavlinkAPM.read_unit_from_dict(param_choice_dict)
 
-        self.param_len = len(param_choice)
-        self.problem = ANAProblem(param_choice, para_dict, result_data)
+class RangeOptimizer(object):
+    def __init__(self):
+        self.problem = RangeProblem()
+        self.start_value = None
+        # Parameter
+        self.participle_param = toolConfig.PARAM
+        para_dict = load_param()
+
+        # default value, step and boundary
+        self.param_choice_dict = select_sub_dict(para_dict, self.participle_param)
+        self.step_unit = read_unit_from_dict(self.param_choice_dict)
+        self.default_pop = get_default_values(self.param_choice_dict)
+        self.sub_value_range = read_range_from_dict(self.param_choice_dict)
+
+    def set_bounds(self):
+        # step
+        self.problem.init_bounds_and_step(self.sub_value_range, self.step_unit)
+
+class GARangeOptimizer(RangeOptimizer):
+    def __init__(self, result_data):
+        super(GARangeOptimizer, self).__init__()
+
+        name = 'ANAProblem'  # 初始化name（函数名称，可以随意设置）boundary
+        M = 2  # 初始化M（目标维数）
+        maxormins = [-1, -1]  # 初始化maxormins（目标最小最大化标记列表，1：最小化该目标；-1：最大化该目标）
+        Dim = self.sub_value_range.shape[0] * 2  # 初始化Dim（决策变量维数）
+        varTypes = [1] * Dim  # 初始化varTypes（决策变量的类型，元素为0表示对应的变量是连续的；1表示是离散的）
+        lb = np.repeat(self.sub_value_range[:, 0] / self.step_unit, 2)  # 决策变量下界
+        lb[1::2] = self.default_pop // self.step_unit
+        ub = np.repeat(self.sub_value_range[:, 1] / self.step_unit, 2)  # 决策变量上界
+        ub[::2] = self.default_pop // self.step_unit
+        lbin = [1] * Dim  # 决策变量下边界（0表示不包含该变量的下边界，1表示包含）
+        ubin = [1] * Dim  # 决策变量上边界（0表示不包含该变量的上边界，1表示包含）
+        # 调用父类构造方法完成实例化
+
+        self.problem = GARangeProblem(name=name, M=M, maxormins=maxormins, Dim=self.sub_value_range.shape[0],
+                                 varTypes=varTypes, lb=lb, ub=ub, lbin=lbin, ubin=ubin, result_data=result_data)
+
+        # Result logging
+        self.NDSet = None
+        self.population = None
         self.algorithm = None
-        self.obj_trace = None
-        self.var_trace = None
-
-        self.default_pop = (GaMavlinkAPM.get_default_values(param_choice_dict) / step_unit).to_numpy(dtype=int)
 
     def run(self):
         NINDs = 3000
@@ -36,7 +67,7 @@ class ANAGA(object):
         self.algorithm.maxTrappedCount = 10
         self.algorithm.drawing = 1#
         """==========================调用算法模板进行种群进化======================="""
-        [NDSet, population]  = self.algorithm.start_optimize()
+        [NDSet, population] = self.algorithm.run()
 
         with open('NDSetnew.pkl','wb') as f:
             pickle.dump(NDSet, f)
