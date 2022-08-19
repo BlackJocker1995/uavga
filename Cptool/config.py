@@ -142,7 +142,6 @@ class ToolConfig:
 
         # MODEL的输入长度
         self.__dict__["INPUT_LEN"] = 4
-
         # MODEL的输出长度
         self.__dict__["OUTPUT_LEN"] = 1
 

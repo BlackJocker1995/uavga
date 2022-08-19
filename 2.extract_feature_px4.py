@@ -12,4 +12,4 @@ if __name__ == '__main__':
     lstm = CyLSTM(100, 512)
     feature = lstm.extract_feature(f"{toolConfig.ARDUPILOT_LOG_PATH}/logs/ulg_changed/csv")
     # Save
-    feature.to_csv(f"model/{toolConfig.MODE}/features.csv", index=False)
+    feature.to_csv(f"model/{toolConfig.MODE}/{toolConfig.INPUT_LEN}_{toolConfig.OUTPUT_LEN}/features.csv", index=False)

@@ -20,7 +20,7 @@ from tensorflow.python.keras.models import load_model
 from tqdm import tqdm
 
 from Cptool.config import toolConfig
-from Cptool.mavtool import min_max_scaler_param, min_max_scaler
+from Cptool.mavtool import min_max_scaler_param, min_max_scaler, return_min_max_scaler_param
 
 
 class Modeling(object):
@@ -291,18 +291,13 @@ class Modeling(object):
             # plt.show()
             plt.clf()
 
-    def run_5flow_test(self, train_filename, cuda: bool = False):
+    def run_5flow_test(self, features, cuda: bool = False):
         if not cuda:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
         # load dataset
-        dataset = pd.read_csv(train_filename, header=0, index_col=0)
 
-        values = dataset.values
-
-        values = self.cs_to_sl(values)
-
-        X, Y = self.data_split(values)
+        X, Y = self.data_split(features)
 
         for i in range(5):
             _, X_other, _, y_other = train_test_split(X, Y, test_size=0.2, random_state=5 + i,
@@ -311,6 +306,27 @@ class Modeling(object):
                                                                 shuffle=True, stratify=None)
 
             self._fit_network(X_valid, y_valid, X_test, y_test, i)
+
+    def feature_deviation(self, test_data, cuda: bool = False):
+        if self._model is None:
+            logging.warning('Model is not trained!')
+            raise ValueError('Train or load model at first')
+
+        if not cuda:
+            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+        # load dataset
+        test_X, test_Y = self.data_split(test_data)
+
+        pred_y = self._model.predict(test_X)
+
+        deviation = np.abs(pred_y - test_Y)
+
+        split_deviation = np.split(deviation, 1000)
+
+        split_loss = [it.sum() for it in split_deviation]
+        # deviation = return_min_max_scaler_param(deviation)
+
+        return np.array(split_loss)
 
     def test(self, test_data, cuda: bool = False):
         if self._model is None:
@@ -335,7 +351,7 @@ class Modeling(object):
         scores = []
         for i in range(k):
             try:
-                self.set_model(f"{model_path}/lstm{i}.h5")
+                self.set_model(f"{model_path}/lstm.h5")
             except Exception as e:
                 logging.warning('Model is not trained!')
                 raise ValueError('Train or load model at first')
@@ -438,7 +454,8 @@ class CyLSTM(Modeling):
         self.batch_size: int = batch_size
 
     def data_split(self, values):
-        values = values.values
+        if isinstance(values, pd.DataFrame):
+            values = values.values
 
         # split into input and outputs
         X = values[:, :toolConfig.INPUT_DATA_LEN]

@@ -11,6 +11,6 @@ if __name__ == '__main__':
 
     lstm = CyLSTM(100, 512)
     # read
-    feature = pd.read_csv(f"model/{toolConfig.MODE}/features_train.csv")
+    feature = pd.read_csv(f"model/{toolConfig.MODE}/{toolConfig.INPUT_LEN}_{toolConfig.OUTPUT_LEN}/features_train.csv")
     # Train
     lstm.train(feature, cuda=True)

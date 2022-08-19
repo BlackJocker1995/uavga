@@ -4,21 +4,23 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
+from Cptool.config import toolConfig
 from Cptool.gaMavlink import GaMavlinkAPM
-from uavga.uavgeat import ProblemGA
+from Cptool.mavtool import load_param, read_range_from_dict
+from uavga.problem import ProblemGA
 
 
 def test1():
-    para_dict = GaMavlinkAPM.load_param()
-    ranges = GaMavlinkAPM.read_range_from_dict(para_dict)
+    para_dict = load_param()
+    ranges = read_range_from_dict(para_dict)
     units = ranges[:, 1] - ranges[:, 0]
 
-    base_data = pd.read_csv('result/params_test1.csv')
+    base_data = pd.read_csv(f'result/{toolConfig.MODE}/params_test1.csv')
     test_date_drop_result = base_data.drop('result', 1).to_numpy() / units
 
     # 认为都是positive
 
-    search_data = pd.read_csv('result/params_test2.csv')
+    search_data = pd.read_csv(f'result/{toolConfig.MODE}/params_test2.csv')
     search_data_drop_result = search_data.drop('result', 1).to_numpy() / units
 
     similar_mat = cosine_similarity(search_data_drop_result, test_date_drop_result)
@@ -43,20 +45,19 @@ def test1():
 
     print()
 
+
 def test2():
-    data = pd.read_csv('result/params.csv')
+    data = pd.read_csv(f'result/{toolConfig.MODE}/params.csv')
     data_drop_result = data.drop('result', 1)
     tandf = data.drop_duplicates(data_drop_result.columns)
     tandf.to_csv('result/params1.csv', index=False)
 
 
 def test3():
-
-
     candidate_vars = []
     candidate_objs = []
-    pd.set_option('precision', 6)
-    with open('result/Ardupilot/pop.pkl', 'rb') as f:
+    # pd.set_option('precision', 6)
+    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
         obj_populations = pickle.load(f)
     for pop in obj_populations:
         pop_v = pop.ObjV
@@ -83,20 +84,20 @@ def test3():
     candidate_objs = np.array(candidate_objs, dtype=float).round(8)
 
 
-    ver_data = pd.read_csv('result/params.csv').round(8)
+    ver_data = pd.read_csv(f'result/{toolConfig.MODE}params.csv').round(8)
     candidate = pd.DataFrame(candidate_objs, columns=ver_data.columns.drop('result'))
     candidate['score'] = candidate_vars
 
     out = pd.merge(candidate, ver_data)
     # how='outer'
-    out.to_csv('result/merge.csv')
+    out.to_csv(f'result/{toolConfig.MODE}/merge.csv')
 
     print()
 
 
 def test4():
-    data = pd.read_csv('result/params.csv')
-    for th in np.arange(9, 20, 0.1):
+    data = pd.read_csv(f'result/{toolConfig.MODE}/params.csv')
+    for th in np.arange(1, 6, 0.05):
         indata = data[data['score'] >= th]
         outdata = data[data['score'] < th]
 
@@ -105,10 +106,12 @@ def test4():
             good_ratio = 0
         else:
             good_ratio = outdata[outdata["result"]=="pass"].shape[0] / outdata.shape[0]
-        print(f'TP : {bad_ratio}   ---   TN : {good_ratio}')
+        print(f'TH: {round(th,4)} TP : {bad_ratio}   ---   TN : {good_ratio}')
+    # PX4:1.2 Ardupilot: 1.4
 
 
 if __name__ == '__main__':
+    toolConfig.select_mode("PX4")
     test4()
 
 
