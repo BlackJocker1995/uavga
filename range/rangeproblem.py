@@ -4,6 +4,7 @@ import geatpy as ea
 import pandas as pd
 
 from Cptool.config import toolConfig
+from Cptool.mavtool import load_param, read_unit_from_dict
 
 
 class RangeProblem:
@@ -71,3 +72,9 @@ class GARangeProblem(RangeProblem, ea.Problem):
         pass_rate = pass_index.values.sum() / satisfy_value.shape[0]
         print(f'include num: {len(index)}   rate: {pass_rate}')
         return pass_rate, len(index)
+
+    @staticmethod
+    def reasonable_range_static(param):
+        para_dict = load_param()
+        step_unit = read_unit_from_dict(para_dict)
+        return param * np.repeat(step_unit, 2)

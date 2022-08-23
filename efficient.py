@@ -6,7 +6,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from Cptool.config import toolConfig
 from Cptool.gaMavlink import GaMavlinkAPM
-from Cptool.mavtool import load_param, read_range_from_dict
+from Cptool.mavtool import load_param, read_range_from_dict, get_default_values
+from range.rangeproblem import GARangeProblem
 from uavga.problem import ProblemGA
 
 
@@ -54,45 +55,37 @@ def test2():
 
 
 def test3():
-    candidate_vars = []
-    candidate_objs = []
-    # pd.set_option('precision', 6)
-    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
-        obj_populations = pickle.load(f)
-    for pop in obj_populations:
-        pop_v = pop.ObjV
-        pop_p = pop.Phen
+    popO = pd.read_csv(f'result/{toolConfig.MODE}/Population Info/ObjV.csv', header=None).to_numpy()
+    popP = pd.read_csv(f'result/{toolConfig.MODE}/Population Info/Phen.csv', header=None).to_numpy()
 
-        candidate_var_index = np.unique(pop_p, axis=0, return_index=True)[1]
+    rate = popO[:, 1]
+    # sort
+    candidate_index = np.argsort(rate)
 
-        pop_v = pop_v[candidate_var_index]
-        pop_p = pop_p[candidate_var_index]
+    popP = popP[candidate_index]
+    popO = popO[candidate_index]
 
-        candidate = [-1] * pop_v
+    item = []
 
-        candidate_index = np.argsort(candidate.reshape(-1))
-        pop_v = pop_v[candidate_index].reshape((-1, 1))
-        pop_p = pop_p[candidate_index].reshape((-1, 20))
+    name = toolConfig.PARAM.copy()
+    name_down = [it + "down" for it in name]
+    name_up = [it + "up" for it in name]
+    column = []
+    for a, b in zip(name_down, name_up):
+        column.append(a)
+        column.append(b)
+    column.append('num')
+    column.append('rate')
 
-        candidate_var = pop_v[:min(4, len(pop_v))]
-        candidate_obj = pop_p[:min(4, len(pop_p))]
-        candidate_obj = ProblemGA.reasonable_range_static(candidate_obj)
-
-        candidate_vars.extend(candidate_var)
-        candidate_objs.extend(candidate_obj)
-    candidate_vars = np.array(candidate_vars, dtype=float).round(8)
-    candidate_objs = np.array(candidate_objs, dtype=float).round(8)
-
-
-    ver_data = pd.read_csv(f'result/{toolConfig.MODE}params.csv').round(8)
-    candidate = pd.DataFrame(candidate_objs, columns=ver_data.columns.drop('result'))
-    candidate['score'] = candidate_vars
-
-    out = pd.merge(candidate, ver_data)
-    # how='outer'
-    out.to_csv(f'result/{toolConfig.MODE}/merge.csv')
-
-    print()
+    # retrans to raw value
+    for index in range(popP.shape[0]):
+        pop_p = popP[index, :]
+        raw_pop = GARangeProblem.reasonable_range_static(pop_p)
+        # add rate and overrate
+        pop = np.r_[raw_pop, popO[index]]
+        item.append(pop)
+    item = pd.DataFrame(item, columns=column)
+    item.to_csv(f'result/{toolConfig.MODE}/merge.csv', index=False)
 
 
 def test4():
@@ -110,8 +103,29 @@ def test4():
     # PX4:1.2 Ardupilot: 1.4
 
 
+def test5():
+    items = pd.read_csv(f'result/{toolConfig.MODE}/merge.csv')
+    np_items = items.to_numpy()[:, :-2]
+    up = np_items[:, 1::2]
+    lower = np_items[:, 0::2]
+    now_range = up - lower
+
+    para_dict = load_param()
+    default_value = read_range_from_dict(para_dict)
+    deup = default_value[:, 1::2]
+    delower = default_value[:, 0::2]
+    default_range = deup - delower
+
+    default_range = np.repeat(default_range.reshape((1,-1)), now_range.shape[0], axis=0)
+
+    reduce = (default_range - now_range) / default_range
+
+    reduce = pd.DataFrame(reduce, columns=toolConfig.PARAM)
+
+    reduce.to_csv(f'result/{toolConfig.MODE}/range.csv', index=False)
+
 if __name__ == '__main__':
     toolConfig.select_mode("PX4")
-    test4()
+    test5()
 
 

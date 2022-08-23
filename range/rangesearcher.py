@@ -69,11 +69,11 @@ class GARangeOptimizer(RangeOptimizer):
         """==========================调用算法模板进行种群进化======================="""
         [NDSet, population] = self.algorithm.run()
 
-        with open('NDSetnew.pkl','wb') as f:
+        with open('NDSetnew.pkl', 'wb') as f:
             pickle.dump(NDSet, f)
         NDSet.save()  # 把非支配种群的信息保存到文件中
 
-        ea.moeaplot(NDSet.ObjV, xyzLabel=['No. of Solutions Covered by Range', 'Safe/Pass Ratio of Covered Solutions'])
+        ea.moeaplot(NDSet.ObjV, xyzLabel=['No. of Validated Configuration', 'Incorrect/Validated Ratio'])
 
         # 输出
         print('用时：%s 秒' % (self.algorithm.passTime))

@@ -20,7 +20,7 @@ from tensorflow.python.keras.models import load_model
 from tqdm import tqdm
 
 from Cptool.config import toolConfig
-from Cptool.mavtool import min_max_scaler_param, min_max_scaler, return_min_max_scaler_param
+from Cptool.mavtool import min_max_scaler_param, min_max_scaler, return_min_max_scaler_param, return_min_max_scaler
 
 
 class Modeling(object):
@@ -190,15 +190,17 @@ class Modeling(object):
             raise ValueError('Train or load model at first')
         if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}'):
             os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}')
+        if isinstance(test, pd.DataFrame):
+            test = test.values
 
         values = self.cs_to_sl(test)
         X, Y = self.data_split(values)
 
         predict_y = self._model.predict(X)
-        # if self._resize:
-        #     scalar = self.load_trans()
-        #     predict_y = scalar.inverse_transform(predict_y)
-        #     Y = scalar.inverse_transform(Y)
+
+        trans = self.load_trans()
+        predict_y = trans.inverse_transform(predict_y)
+        Y = trans.inverse_transform(Y)
 
         if X.shape[0] > num:
             col = self._systematicSampling(X, num)
@@ -219,6 +221,7 @@ class Modeling(object):
 
             ax1.plot(x, '-', label='Predicted', linewidth=2)
             ax1.plot(y, '--', label='Real', linewidth=2)
+            ax1.set_xlabel("Timestamp", fontsize=18)
             if name in ['AccX', 'AccY', 'AccZ']:
                 ax1.set_ylabel(f'{name} (m/s/s)', fontsize=18)
             if name in ['RateRoll', 'RatePitch', 'RateYaw']:
@@ -234,6 +237,7 @@ class Modeling(object):
             if name in ['Roll', 'Pitch', 'Yaw']:
                 ax2.set_ylabel('Error (deg)', fontsize=18)
 
+
             fig.legend(loc='upper center', ncol=3, fontsize='18')
             plt.setp(ax1.get_xticklabels(), fontsize=18)
             plt.setp(ax2.get_yticklabels(), fontsize=18)
@@ -242,8 +246,8 @@ class Modeling(object):
             plt.margins(0, 0)
             # plt.gcf().subplots_adjust(bottom=0.12)
             plt.savefig(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}/{name.lower()}.{exec}')
-            # plt.show()
-            plt.clf()
+            plt.show()
+            # plt.clf()
 
     def test_feature_draw(self, X, Y, cmp_name, exec='pdf'):
         if self._model is None:
