@@ -2,13 +2,14 @@
 import numpy as np
 import pandas
 
+from Cptool.config import toolConfig
 
 '''
 Analysis Flight Data
 '''
 
 def read_invalid_csv(file):
-    return pandas.read_csv(file, index_col=0)
+    return pandas.read_csv(file)
 
 
 def cal_coverage(range_up, range_down, invalid_config):
@@ -52,16 +53,17 @@ if __name__ == '__main__':
     # range_up = [2.1, 0.4, 0.9, 0.1,2000,8000]
     # range_down = [0.6,-1,-0.7, -0.8,300,1000]
 
-    # range_up = [4.2, 2.1, 1.3, 3, 1950, 4650]
-    # range_down = [1.9, -0.5, -0.7, -0.1, 50, 1100]
+    # 1
+    # range_up = [6.0, 5.0, 5.0, 5.0, 2000, 8000]
+    # range_down = [0.1, -4.7, -5.0, -5.0, 50, 1000]
 
     # M
     # range_up = [6.0, 4.1, 3.2, 1.3, 2000, 8000]
     # range_down = [0.6, -1, -0.7, -0.8, 300, 1000]
 
-    # one
-    range_up = [6.0, 5.0, 5.0, 5.0, 2000, 8000]
-    range_down = [0.1, -4.7, -5.0, -5.0, 50, 1000]
+    # GA
+    range_up = [4.7, 0.8, 0.7, 0.4, 1950, 6850]
+    range_down = [0.7, -0.7, -0.8, -0.3, 300, 1000]
 
-    invalid_config = read_invalid_csv(r'E:\program\uavga\out\ardupilot\6.csv')
+    invalid_config = read_invalid_csv(f'../result/{toolConfig.MODE}/params_ux.csv')
     cal_invalidRvalid(range_up, range_down, invalid_config)

@@ -8,7 +8,6 @@ from abc import abstractmethod
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from dtaidistance import dtw_ndim
 from keras.layers import Dense, Dropout, RepeatVector
 from keras.layers import LSTM
 from keras.models import Sequential
@@ -20,7 +19,7 @@ from tensorflow.python.keras.models import load_model
 from tqdm import tqdm
 
 from Cptool.config import toolConfig
-from Cptool.mavtool import min_max_scaler_param, min_max_scaler, return_min_max_scaler_param, return_min_max_scaler
+from Cptool.mavtool import min_max_scaler
 
 
 class Modeling(object):
@@ -203,8 +202,8 @@ class Modeling(object):
         Y = trans.inverse_transform(Y)
 
         if X.shape[0] > num:
-            col = self._systematicSampling(X, num)
-            # col = np.arange(200, 400)
+            # col = self._systematicSampling(X, num)
+            col = np.arange(X.shape[0] - 200, X.shape[0])
             predict_y = predict_y[col, :]
             test = Y[col, :]
         else:
@@ -236,7 +235,6 @@ class Modeling(object):
                 ax2.set_ylabel('Error (deg/s)', fontsize=18)
             if name in ['Roll', 'Pitch', 'Yaw']:
                 ax2.set_ylabel('Error (deg)', fontsize=18)
-
 
             fig.legend(loc='upper center', ncol=3, fontsize='18')
             plt.setp(ax1.get_xticklabels(), fontsize=18)
@@ -332,6 +330,25 @@ class Modeling(object):
 
         return np.array(split_loss)
 
+    def feature_deviation_old(self, test_data, cuda: bool = False):
+        if self._model is None:
+            logging.warning('Model is not trained!')
+            raise ValueError('Train or load model at first')
+
+        if not cuda:
+            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+        # load dataset
+        test_X, test_Y = self.data_split(test_data)
+
+        pred_y = self._model.predict(test_X)
+
+        deviation = np.abs(pred_y - test_Y)
+
+        split_loss = deviation.sum(axis=1)
+        # deviation = return_min_max_scaler_param(deviation)
+
+        return np.array(split_loss)
+
     def test(self, test_data, cuda: bool = False):
         if self._model is None:
             logging.warning('Model is not trained!')
@@ -417,6 +434,21 @@ class Modeling(object):
         if dropnan:
             agg.dropna(inplace=True)
         return agg.to_numpy().reshape((-1, toolConfig.INPUT_LEN, toolConfig.DATA_LEN))
+
+    @classmethod
+    def cal_deviation_old(cls, predicted_data, status_data):
+        """
+        calculate vector deviation between status_data and predicted data
+        :param status_data: real flight status data
+        :param predicted_data: predicted data
+        :return: status_deviation result which has been normalized
+        """
+        deviation = np.abs(status_data - predicted_data)
+        if len(predicted_data.shape) == 3:
+            loss = deviation.sum(axis=tuple(range(1, 3)))
+        else:
+            loss = deviation.sum(axis=1).sum(axis=1)
+        return loss
 
     @classmethod
     def cal_patch_deviation(cls, predicted_data, status_data):

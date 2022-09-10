@@ -15,7 +15,7 @@ from Cptool.gaSimManager import GaSimManager
 from Cptool.mavtool import min_max_scaler_param
 from ModelFit.approximate import CyLSTM, Modeling
 from uavga.problem import ProblemGA
-from uavga.searcher import SearchOptimizer, GAOptimizer
+from uavga.searcher import SearchOptimizer, GAOptimizer, GAOptimizerOld
 
 
 def split_segment(csv_data):

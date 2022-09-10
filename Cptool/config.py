@@ -94,7 +94,14 @@ class ToolConfig:
                 "WPNAV_ACCEL",
                 "ANGLE_MAX"
             ]
-
+            # self.__dict__["PARAM"] = [
+            #     "PSC_VELXY_P",
+            #     "INS_POS1_Z",
+            #     "INS_POS2_Z",
+            #     "INS_POS3_Z",
+            #     "WPNAV_SPEED",
+            #     "ANGLE_MAX"
+            # ]
         elif mode == "PX4":
             # PX4 : ['Jmavsim']
             self.__dict__["SIM"] = "Jmavsim"  # "Jmavsim"
