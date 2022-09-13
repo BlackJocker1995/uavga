@@ -250,6 +250,11 @@ class DroneMavlink:
     # Static method
     @staticmethod
     def create_random_params(param_choice):
+        """
+        create a configuration with random values
+        :param param_choice: parameters you want to choose
+        :return:
+        """
         para_dict = load_param()
 
         param_choice_dict = select_sub_dict(para_dict, param_choice)
@@ -590,7 +595,7 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
         try:
             timeout_start = time.time()
             while time.time() < timeout_start + timeout:
-                # PX4 needs manual send the heartbeat of GCS
+                # PX4 needs manual send the heartbeat for GCS
                 self.gcs_msg_request()
                 message = self._master.recv_match(type=['STATUSTEXT'], blocking=False, timeout=30)
                 if message is None:

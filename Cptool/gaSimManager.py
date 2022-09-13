@@ -172,7 +172,7 @@ class GaSimManager(object):
 
     def mav_monitor_init(self, mavlink_class: Type[DroneMavlink] = DroneMavlink, drone_i=0):
         """
-        初始化SITL在环
+        initial SITL monitor
         :return:
         """
         self.mav_monitor = mavlink_class(14540 + int(drone_i),
