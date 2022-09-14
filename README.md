@@ -24,8 +24,6 @@ python3 {Your Ardupilot path}/Tools/autotest/sim_vehicle.py --location=AVC_plane
 ## Deployment
 The configuration is in `Cptool.config.py`.
 
-If you want to try PX4 simulation, import toolConfig and use `toolConfig.select_mode("PX4")`
-
 
 ## Description
 
