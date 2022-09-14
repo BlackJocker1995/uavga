@@ -1,10 +1,9 @@
 # LGDFuzzer
-This is an approach source code of LGDFuzzer.
+This is an approach source code of [LGDFuzzer](https://dl.acm.org/doi/10.1145/3510003.3510084).
 
-Update: 22-07-15, support px4
 
 ## Requirement
-Python package requirement: numpy ; pandas ; pymavlink ; pyulog ; eventlet ; keras ; tensorflow
+Python package requirement: numpy ; pandas ; pymavlink ; pyulog ; keras ; tensorflow
 
 OS: The program is only test in Ubuntu 18.04 nad 20.04.
 
@@ -14,7 +13,8 @@ pip3 install pymavlink pandas pyulog eventlet keras tensorflow
 
 
 Simulation requirement: [SITL](https://github.com/ArduPilot/ardupilot).
-The initializer of simulator needs to change the path in the file `Cptool.gaSimManager.py` with function `start_sitl` in line34.
+
+The initializer of simulator needs to change the path in the file `Cptool.gaSimManager.py` with function `start_sitl`.
 For example,
 `
 python3 {Your Ardupilot path}/Tools/autotest/sim_vehicle.py --location=AVC_plane --out=127.0.0.1:14550 -v ArduCopter -w -S {toolConfig.SPEED} "
@@ -22,12 +22,20 @@ python3 {Your Ardupilot path}/Tools/autotest/sim_vehicle.py --location=AVC_plane
 
 
 ## Deployment
-The configuration is in `Cptool.config.py` and `ModelFit.config.py`
+The configuration is in `Cptool.config.py`.
+
+If you want to try PX4 simulation, import toolConfig and use `toolConfig.select_mode("PX4")`
 
 
 ## Description
 
+`0.collect.py` start simulation to collect flight logs.
+
 `1.trans_bin2csv.py` transform the bin file to csv.
+
+`2.extract_feature.py` extract feature from csv.
+
+`2.feature_split.py` split the csv data for train and test.
 
 `2.train_Lstm.py` train a model predictor.
 
@@ -35,7 +43,7 @@ The configuration is in `Cptool.config.py` and `ModelFit.config.py`
 
 `4.validate.py` validate configurations through simulator.
 
-If you want to validate with multiple simulator, you can use validate.py -- device {xxx} to start SITL
+If you want to validate with multiple simulator, you can use validate.py -- device {xxx} to start multiple SITL
 
 `5.range.py` summary range guideline by validated result.
 
