@@ -94,21 +94,19 @@ if __name__ == '__main__':
             results.append(result)
         else:
             if not os.path.exists(f'result/params.csv'):
-                while not os.access(f"result/params.csv", os.W_OK):
-                    continue
                 data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
-            else:
-                while not os.access(f"result/params.csv", os.W_OK):
-                    continue
-                # Add instability resutl
-                tmp_row = value_vector.tolist()
-                tmp_row.append(vars[0])
-                tmp_row.append(result)
+                data.to_csv(f'result/params.csv', index=False)
+            while not os.access(f"result/params.csv", os.W_OK):
+                continue
+            # Add instability resutl
+            tmp_row = value_vector.tolist()
+            tmp_row.append(vars[0])
+            tmp_row.append(result)
 
-                # Write Row
-                with open("result/params.csv", 'a+') as f:
-                    csv_file = csv.writer(f)
-                    csv_file.writerow(tmp_row)
+            # Write Row
+            with open("result/params.csv", 'a+') as f:
+                csv_file = csv.writer(f)
+                csv_file.writerow(tmp_row)
 
         manager.stop_sitl()
         i += 1
