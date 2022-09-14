@@ -1,43 +1,66 @@
-
 {
-  "PSC_POSXY_P": {
-    "range": [
-      0.5,
-      2.0
-    ],
-    "step": 0.01,
-    "default": 1.0
-  },
   "PSC_VELXY_P": {
     "range": [
       0.1,
       6.0
     ],
     "step": 0.1,
-    "default": 2.0
+    "default": 2
   },
-  "PSC_POSZ_P": {
+  "PSC_VELXY_I": {
     "range": [
-      1.0,
-      3.00
+      0.02,
+      1.0
     ],
     "step": 0.01,
     "default": 1.0
   },
+  "PSC_VELXY_D": {
+    "range": [
+      0.0,
+      1.0
+    ],
+    "step": 0.001,
+    "default": 0.5
+  },
+  "PSC_ACCZ_P": {
+    "range": [
+      0.2,
+      1.5
+    ],
+    "step": 0.05,
+    "default": 0.5
+  },
+  "PSC_ACCZ_I": {
+    "range": [
+      0.0,
+      3.0
+    ],
+    "step": 0.1,
+    "default": 1.0
+  },
   "ATC_ANG_RLL_P": {
     "range": [
-      0,
-      12.000
+      3.0,
+      12.0
     ],
-    "step": 0.01,
+    "step": 0.1,
     "default": 4.5
+  },
+  "ATC_RAT_RLL_P": {
+    "range": [
+      0.01,
+      0.5
+    ],
+    "step": 0.005,
+    "default": 0.135
   },
   "ATC_RAT_RLL_I": {
     "range": [
       0.01,
       2.0
     ],
-    "step": 0.01,
+    "step": 0.005,
     "default": 0.135
   },
   "ATC_RAT_RLL_D": {
@@ -48,26 +71,18 @@
     "step": 0.001,
     "default": 0.0036
   },
-  "ATC_RAT_RLL_P": {
-    "range": [
-      0.01,
-      0.5
-    ],
-    "step": 0.005,
-    "default": 0.135
-  },
   "ATC_ANG_PIT_P": {
     "range": [
-      0.0,
+      3.0,
       12.0
     ],
-    "step": 0.01,
+    "step": 0.1,
     "default": 4.5
   },
   "ATC_RAT_PIT_P": {
     "range": [
       0.01,
-      0.50
+      0.5
     ],
     "step": 0.005,
     "default": 0.135
@@ -90,15 +105,15 @@
   },
   "ATC_ANG_YAW_P": {
     "range": [
-      0.0,
-      6.0
+      3.0,
+      12.0
     ],
-    "step": 0.01,
+    "step": 0.1,
     "default": 4.5
   },
   "ATC_RAT_YAW_P": {
     "range": [
-      0.10,
+      0.1,
       2.5
     ],
     "step": 0.005,
@@ -106,15 +121,15 @@
   },
   "ATC_RAT_YAW_I": {
     "range": [
-      0.010,
+      0.01,
       1.0
     ],
     "step": 0.01,
-    "default": 0.018
+    "default": 0.01
   },
   "ATC_RAT_YAW_D": {
     "range": [
-      0.0,
+      0.00,
       0.02
     ],
     "step": 0.001,
@@ -126,23 +141,7 @@
       2000
     ],
     "step": 50,
-    "default": 500
-  },
-  "WPNAV_SPEED_UP": {
-    "range": [
-      50,
-      1000
-    ],
-    "step": 50,
-    "default": 250
-  },
-  "WPNAV_SPEED_DN": {
-    "range": [
-      10,
-      500
-    ],
-    "step": 10,
-    "default": 150
+    "default": 1000
   },
   "WPNAV_ACCEL": {
     "range": [
@@ -150,15 +149,14 @@
       500
     ],
     "step": 10,
-    "default": 100
+    "default": 250
   },
   "ANGLE_MAX": {
     "range": [
       1000,
       8000
     ],
-    "step": 50,
-    "default": 4500
+    "step": 10,
+    "default": 1000
   }
 }
-

@@ -1,8 +1,7 @@
 # LGDFuzzer
-This is an approach source code of LGDFuzzer.
+This is an approach source code of [LGDFuzzer](https://dl.acm.org/doi/10.1145/3510003.3510084).
 
-The original code of the paper is in this [commit](https://github.com/BlackJocker1995/uavga/tree/b8ebee6e2291bfba1f8e82d9b8bccd64ea27b565)
-or [release](https://github.com/BlackJocker1995/uavga/tree/b8ebee6e2291bfba1f8e82d9b8bccd64ea27b565)
+The original code of the [paper(LGDFuzzer)](https://dl.acm.org/doi/10.1145/3510003.3510084) is in branch [lgdfuzzer](https://github.com/BlackJocker1995/uavga/tree/lgdfuzzer)
 
 # Log
 Update: 22-07-15, support px4
@@ -19,7 +18,7 @@ pip3 install pymavlink pandas pyulog eventlet keras tensorflow
 
 Simulation requirement: [SITL](https://github.com/ArduPilot/ardupilot).
 
-The initializer of simulator needs to change the path in the file `Cptool.gaSimManager.py` with function `start_sitl` in line34.
+The initializer of simulator needs to change the path in the file `Cptool.gaSimManager.py` with function `start_sitl`.
 For example,
 `
 python3 {Your Ardupilot path}/Tools/autotest/sim_vehicle.py --location=AVC_plane --out=127.0.0.1:14550 -v ArduCopter -w -S {toolConfig.SPEED} "
@@ -40,22 +39,18 @@ If you want to try PX4 simulation, import toolConfig and use `toolConfig.select_
 
 `2.extract_feature.py` extract feature from csv.
 
+`2.raw_split.py` split the test feature for further searcher.
+
 `2.feature_split.py` split the csv data for train and test.
 
-`2.train_Lstm.py` train a model predictor.
+`2.train_lstm.py` train a model predictor.
 
 `3.lgfuzzer.py` start the fuzzing test.
+
+`4.pre_validate.py` select candidates.
 
 `4.validate.py` validate configurations through simulator.
 
 If you want to validate with multiple simulator, you can use validate.py -- device {xxx} to start multiple SITL
 
 `5.range.py` summary range guideline by validated result.
-
-## Other
-
-Train Data Set: https://drive.google.com/drive/folders/1bbRqWWUEuyfu8mubMBMaLD_QARP82P4x?usp=sharing
-
-Video of flight test: https://youtube.com/playlist?list=PLDDY9yM5Ac0Dh5o1R40Hs8lobhD8E3yil
-
-error flight example data log: https://drive.google.com/drive/folders/1VTKvvgNNdIG2kvr4cJ2WeiPsi3kpviaS?usp=sharing
