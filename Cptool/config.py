@@ -162,7 +162,7 @@ class ToolConfig:
         self.__dict__["OUTPUT_DATA_LEN"] = self.__dict__["STATUS_LEN"] * self.__dict__["OUTPUT_LEN"]
 
         # 每一个片段的大小
-        self.__dict__["SEGMENT_LEN"] = 9 + self.__dict__["INPUT_LEN"]
+        self.__dict__["SEGMENT_LEN"] = 10 + self.__dict__["INPUT_LEN"]
 
         # 是否还原
         self.__dict__["RETRANS"] = True

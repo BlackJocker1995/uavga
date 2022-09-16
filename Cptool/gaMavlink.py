@@ -481,6 +481,37 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
                 continue
         return True
 
+    @staticmethod
+    def extract_log_file_des_and_ach(log_file):
+        """
+        extract log message form a bin file with att desired and achieved
+        :param log_file:
+        :return:
+        """
+
+        logs = mavutil.mavlink_connection(log_file)
+        # init
+        out_data = []
+
+        while True:
+            msg = logs.recv_match(type=["ATT"])
+            if msg is None:
+                break
+            out = {
+                'TimeS': msg.TimeUS / 1000000,
+                'Roll': msg.Roll,
+                'DesPitch': msg.DesPitch,
+                'Pitch': msg.Pitch,
+                'DesYaw': msg.DesYaw,
+                'Yaw': msg.Yaw
+            }
+            out_data.append(out)
+
+        pd_array = pd.DataFrame(out_data)
+        # Switch sequence, fill,  and return
+        pd_array = GaMavlinkAPM.fill_and_process_pd_log(pd_array)
+        return pd_array
+
     # Special function
     @classmethod
     def random_param_value(cls, param_json: dict):
