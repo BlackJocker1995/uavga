@@ -500,16 +500,18 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
             out = {
                 'TimeS': msg.TimeUS / 1000000,
                 'Roll': msg.Roll,
-                'DesPitch': msg.DesPitch,
+                'DesRoll': msg.DesRoll,
                 'Pitch': msg.Pitch,
-                'DesYaw': msg.DesYaw,
-                'Yaw': msg.Yaw
+                'DesPitch': msg.DesPitch,
+                'Yaw': msg.Yaw,
+                'DesYaw': msg.DesYaw
             }
             out_data.append(out)
 
         pd_array = pd.DataFrame(out_data)
         # Switch sequence, fill,  and return
-        pd_array = GaMavlinkAPM.fill_and_process_pd_log(pd_array)
+        pd_array['TimeS'] = pd_array['TimeS'].round(1)
+        pd_array = pd_array.drop_duplicates(keep='first')
         return pd_array
 
     # Special function
@@ -608,7 +610,7 @@ class GaMavlinkAPM(DroneMavlink, multiprocessing.Process):
                 if msg['severity'] in [0, 2]:
                     # self.send_msg_queue.put('crash')
                     logging.info('ArduCopter detect Crash.')
-                    self.msg_queue.put('error')
+                    self.send_msg_queue.put('error')
                     break
 
 

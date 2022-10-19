@@ -142,7 +142,7 @@ def run_fuzzing(np_data, num=0):
         obj_population.append(gaOptimizer.population)
 
         print(f'------------------- {i + 1} / {segment_csv.shape[0]} -----------------')
-    with open(f'result/{toolConfig.MODE}/pop.pkl', 'wb') as f:
+    with open(f'result/{toolConfig.MODE}/pop_4.pkl', 'wb') as f:
         pickle.dump(obj_population, f)
 
 

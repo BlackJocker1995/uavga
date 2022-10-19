@@ -64,8 +64,9 @@ def rename_bin(log_path, ranges):
 
 def min_max_scaler_param(param_value):
     para_dict = load_param()
-    participle_param = toolConfig.PARAM
-    param_choice_dict = select_sub_dict(para_dict, participle_param)
+    param_choice_dict = para_dict
+    #participle_param = toolConfig.PARAM
+    #param_choice_dict = select_sub_dict(para_dict, participle_param)
 
     param_bounds = read_range_from_dict(param_choice_dict)
     lb = param_bounds[:, 0]
@@ -103,3 +104,14 @@ def return_min_max_scaler(trans, values):
     status_value = trans.transform(status_value)
 
     return np.c_[status_value, param_value]
+
+
+def pad_configuration_default_value(params_value):
+    para_dict = load_param()
+    # default values
+    all_default_value = para_dict.loc[['default']]
+    all_default_value = pd.concat([all_default_value]*params_value.shape[0])
+    # replace values
+    participle_param = toolConfig.PARAM_PART
+    all_default_value[participle_param] = params_value
+    return all_default_value.values

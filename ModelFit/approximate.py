@@ -122,6 +122,32 @@ class Modeling(object):
                 pd_array = pd.concat([pd_array, values])
         return pd_array
 
+    def extract_feature_separately(self, dir):
+        """
+        Extract the feature but not merge.
+        :param dir:
+        :return:
+        """
+        file_list = []
+        # Create folder
+        if not os.path.exists(dir + "/single"):
+            os.makedirs(dir + "/single")
+        # Read all csv
+        for filename in os.listdir(dir + "/csv"):
+            if filename.endswith(".csv"):
+                file_list.append(filename)
+        file_list.sort()
+
+        for index, filename in enumerate(file_list):
+            # Read file
+            data = pd.read_csv(f"{dir}/{filename}")
+            data = data.drop(["TimeS"], axis=1)
+            # extract patch
+            values = data.values
+            values = self._cs_to_sl(values)
+            # if first
+            values.to_csv(f"{dir}/single/{filename}", index=False)
+
     @abstractmethod
     def data_split(self, value):
         pass

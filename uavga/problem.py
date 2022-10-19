@@ -9,7 +9,7 @@ from tensorflow.python.keras.models import load_model
 
 from Cptool.gaMavlink import GaMavlinkAPM
 from Cptool.config import toolConfig
-from Cptool.mavtool import min_max_scaler_param, load_param, read_unit_from_dict
+from Cptool.mavtool import min_max_scaler_param, load_param, read_unit_from_dict, pad_configuration_default_value
 from ModelFit.approximate import CyLSTM
 
 
@@ -52,6 +52,10 @@ class ProblemGA(Problem, ea.Problem):
         # 得到决策变量矩阵
         x = pop.Phen
         x = self.reasonable_range(x).to_numpy()
+        # Padding the parameters if the configuration do not apply all parameters.
+        if x.shape[1] != load_param().shape[1]:
+            x = pad_configuration_default_value(x)
+
         param = min_max_scaler_param(x)
 
         # Statue change

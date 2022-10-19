@@ -19,7 +19,6 @@ from Cptool.gaSimManager import GaSimManager
 from uavga.fuzzer import return_random_n_gen, return_cluster_thres_gen
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser(description='Personal information')
     parser.add_argument('--device', dest='device', type=str, help='Name of the candidate')
     args = parser.parse_args()
