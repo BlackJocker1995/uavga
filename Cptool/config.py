@@ -162,6 +162,11 @@ class ToolConfig:
                 "MPC_TKO_SPEED"
             ]
 
+        if len(self.__dict__["PARAM_PART"]) == len(self.__dict__["PARAM"]):
+            self.__dict__["EXE"] = ""
+        else:
+            self.__dict__["EXE"] = len(self.__dict__["PARAM_PART"])
+
         ######################
         # Model Config       #
         ######################

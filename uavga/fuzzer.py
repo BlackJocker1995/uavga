@@ -142,7 +142,7 @@ def run_fuzzing(np_data, num=0):
         obj_population.append(gaOptimizer.population)
 
         print(f'------------------- {i + 1} / {segment_csv.shape[0]} -----------------')
-    with open(f'result/{toolConfig.MODE}/pop_4.pkl', 'wb') as f:
+    with open(f'result/{toolConfig.MODE}/pop{toolConfig.EXE}.pkl', 'wb') as f:
         pickle.dump(obj_population, f)
 
 
@@ -150,7 +150,7 @@ def return_best_n_gen(n=1):
     candidate_vars = []
     candidate_objs = []
 
-    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
+    with open(f'result/{toolConfig.MODE}/pop{toolConfig.EXE}.pkl', 'rb') as f:
         obj_populations = pickle.load(f)
     for pop in obj_populations:
         pop_v = pop.ObjV
@@ -182,7 +182,7 @@ def return_random_n_gen(n=1):
     candidate_vars = []
     candidate_objs = []
 
-    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
+    with open(f'result/{toolConfig.MODE}/pop{toolConfig.EXE}.pkl', 'rb') as f:
         obj_populations = pickle.load(f)
     for pop in obj_populations:
         pop_v = pop.ObjV
@@ -213,7 +213,7 @@ def return_cluster_thres_gen(thres=0.4):
     candidate_vars = []
     candidate_objs = []
 
-    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
+    with open(f'result/{toolConfig.MODE}/pop{toolConfig.EXE}.pkl', 'rb') as f:
         obj_populations = pickle.load(f)
     for pop in obj_populations:
         pop_v = pop.ObjV
