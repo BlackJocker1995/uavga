@@ -31,7 +31,7 @@ if __name__ == '__main__':
     toolConfig.select_mode("PX4")
 
     # Get Fuzzing result and validate
-    with open(f'result/{toolConfig.MODE}/pop.pkl', 'rb') as f:
+    with open(f'result/{toolConfig.MODE}/pop{toolConfig.EXE}.pkl', 'rb') as f:
         candidate_obj, candidate_var = pickle.load(f)
 
     # Simulator validation
@@ -48,10 +48,10 @@ if __name__ == '__main__':
     for index, vars, value_vector in zip(np.arange(candidate_obj.shape[0]), candidate_var, candidate_obj):
         print(f'======================={index} / {candidate_obj.shape[0]} ==========================')
         # if exist file, append new data in the end.
-        if os.path.exists(f'result/{toolConfig.MODE}/params.csv'):
-            while not os.access(f"result/{toolConfig.MODE}/params.csv", os.R_OK):
+        if os.path.exists(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv'):
+            while not os.access(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", os.R_OK):
                 continue
-            data = pd.read_csv(f'result/{toolConfig.MODE}/params.csv')
+            data = pd.read_csv(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv')
             exit_data = data.drop(['score', 'result'], axis=1, inplace=False)
             # carry our simulation test
             if ((exit_data - value_vector).sum(axis=1).abs() < 0.00001).sum() > 0:
@@ -74,13 +74,13 @@ if __name__ == '__main__':
         result = manager.mav_monitor_error()
 
         # if the result have no instability, skip.
-        if not os.path.exists(f'result/{toolConfig.MODE}/params.csv'):
-            while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
+        if not os.path.exists(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv'):
+            while not os.access(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", os.W_OK):
                 time.sleep(0.1)
                 continue
             data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
         else:
-            while not os.access(f"result/{toolConfig.MODE}/params.csv", os.W_OK):
+            while not os.access(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", os.W_OK):
                 time.sleep(0.1)
                 continue
             # Add instability result
@@ -89,10 +89,10 @@ if __name__ == '__main__':
             tmp_row.append(result)
 
             # Write Row
-            with open(f"result/{toolConfig.MODE}/params.csv", 'a+') as f:
+            with open(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", 'a+') as f:
                 csv_file = csv.writer(f)
                 csv_file.writerow(tmp_row)
-                logging.debug("Write row to params.csv.")
+                logging.debug("Write row to params{toolConfig.EXE}.csv.")
 
         manager.stop_sitl()
         i += 1

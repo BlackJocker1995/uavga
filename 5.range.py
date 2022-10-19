@@ -7,7 +7,7 @@ if __name__ == '__main__':
     # The parameters you want to fuzzing, they must be corresponding to the predictor had.
 
     # Validate Result
-    result_data = pd.read_csv(f'result/{toolConfig.MODE}/params.csv', header=0).drop(columns="score")
+    result_data = pd.read_csv(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv', header=0).drop(columns="score")
     ga = GARangeOptimizer(result_data)
     ga.set_bounds()
     ga.run()
