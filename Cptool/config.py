@@ -170,30 +170,30 @@ class ToolConfig:
         ######################
         # Model Config       #
         ######################
-        # Status 长度
+        # Status length
         self.__dict__["STATUS_LEN"] = len(self.__dict__["STATUS_ORDER"]) - 1
 
-        # Parameter的长度
+        # Parameter length
         self.__dict__["PARAM_LEN"] = len(self.__dict__["PARAM"])
 
-        # MODEL的输入长度
+        # Predictor input vector length
         self.__dict__["INPUT_LEN"] = 4
-        # MODEL的输出长度
+        # Predictor output vector length
         self.__dict__["OUTPUT_LEN"] = 1
 
-        # 每一个input数据的长度
+        # input data entry length
         self.__dict__["DATA_LEN"] = self.__dict__["STATUS_LEN"] + len(toolConfig.PARAM)
 
-        # 输入的数据长度
+        # Whole predictor input length
         self.__dict__["INPUT_DATA_LEN"] = self.__dict__["DATA_LEN"] * self.__dict__["INPUT_LEN"]
 
-        # 输出的数据长度
+        # Whole predictor output length
         self.__dict__["OUTPUT_DATA_LEN"] = self.__dict__["STATUS_LEN"] * self.__dict__["OUTPUT_LEN"]
 
-        # 每一个片段的大小
+        # Vector length of a segment
         self.__dict__["SEGMENT_LEN"] = 10 + self.__dict__["INPUT_LEN"]
 
-        # 是否还原
+        # transform values
         self.__dict__["RETRANS"] = True
 
 

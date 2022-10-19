@@ -30,6 +30,21 @@ The configuration is in `Cptool.config.py`.
 
 If you want to try PX4 simulation, import toolConfig and use `toolConfig.select_mode("PX4")`
 
+## Configuration of System config.py
+ARDUPILOT_LOG_PATH: log path of ardupilot running, noted that, the path needs to have a flag file "logs/LASTLOG.TXT"
+
+SIM: simulation type.
+
+AIRSIM_PATH: if select airsim, you should set the execution path.
+
+PX4_RUN_PATH: if select PX4, you should set the execution path.
+
+PARAM: the parameter used in predictor.
+
+PARAM_PART: the parameter that participate in fuzzing.
+
+INPUT_LEN: input length of predictor.
+
 
 ## Description
 
