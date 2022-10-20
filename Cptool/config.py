@@ -1,5 +1,8 @@
 # coding:utf-8
+import json
 import time
+
+import pandas as pd
 
 
 class ToolConfig:
@@ -72,28 +75,9 @@ class ToolConfig:
                                              'AccX', 'AccY', 'AccZ', 'GyrX', 'GyrY', 'GyrZ',
                                              'MagX', 'MagY', 'MagZ', 'VibeX', 'VibeY', 'VibeZ']
 
-            self.__dict__["PARAM"] = [
-                "PSC_VELXY_P",
-                "PSC_VELXY_I",
-                "PSC_VELXY_D",
-                "PSC_ACCZ_P",
-                "PSC_ACCZ_I",
-                "ATC_ANG_RLL_P",
-                "ATC_RAT_RLL_P",
-                "ATC_RAT_RLL_I",
-                "ATC_RAT_RLL_D",
-                "ATC_ANG_PIT_P",
-                "ATC_RAT_PIT_P",
-                "ATC_RAT_PIT_I",
-                "ATC_RAT_PIT_D",
-                "ATC_ANG_YAW_P",
-                "ATC_RAT_YAW_P",
-                "ATC_RAT_YAW_I",
-                "ATC_RAT_YAW_D",
-                "WPNAV_SPEED",
-                "WPNAV_ACCEL",
-                "ANGLE_MAX"
-            ]
+            with open('Cptool/param_ardu.json', 'r') as f:
+                param_name = pd.DataFrame(json.loads(f.read())).columns.tolist()
+            self.__dict__["PARAM"] = param_name
 
             self.__dict__["PARAM_PART"] = [
                 #"PSC_VELXY_P",
@@ -139,8 +123,12 @@ class ToolConfig:
                                              'AccX', 'AccY', 'AccZ', 'GyrX', 'GyrY', 'GyrZ',
                                              'MagX', 'MagY', 'MagZ', 'VibeX', 'VibeY', 'VibeZ']
 
+            with open('Cptool/param_px4.json', 'r') as f:
+                param_name = pd.DataFrame(json.loads(f.read())).columns.tolist()
+            self.__dict__["PARAM"] = param_name
+
             # TODO: px4 data
-            self.__dict__["PARAM"] = [
+            self.__dict__["PARAM_PART"] = [
                 "MC_ROLL_P",
                 "MC_PITCH_P",
                 "MC_YAW_P",

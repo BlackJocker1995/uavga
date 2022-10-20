@@ -77,6 +77,7 @@ def rename_bin(log_path, ranges):
 
 
 def min_max_scaler_param(param_value):
+    # If param.shape != predictor's all params.
     if param_value.shape[1] != load_param().shape[1]:
         para_dict = load_sub_param()
     else:
@@ -92,7 +93,7 @@ def min_max_scaler_param(param_value):
     return param_value.astype(np.float)
 
 
-def return_min_max_scaler_param(param_value):
+def return_min_max_scaler_param(param_value: object) -> object:
     param = load_param()
     param_bounds = read_range_from_dict(param)
     lb = param_bounds[:, 0]
