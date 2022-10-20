@@ -96,15 +96,15 @@ class ToolConfig:
             ]
 
             self.__dict__["PARAM_PART"] = [
-                "PSC_VELXY_P",
+                #"PSC_VELXY_P",
                 # "PSC_VELXY_I",
-                "PSC_VELXY_D",
-                "PSC_ACCZ_P",
-                "PSC_ACCZ_I",
-                # "ATC_ANG_RLL_P",
-                # "ATC_RAT_RLL_P",
-                # "ATC_RAT_RLL_I",
-                # "ATC_RAT_RLL_D",
+                #"PSC_VELXY_D",
+                #"PSC_ACCZ_P",
+                #"PSC_ACCZ_I",
+                "ATC_ANG_RLL_P",
+                "ATC_RAT_RLL_P",
+                "ATC_RAT_RLL_I",
+                "ATC_RAT_RLL_D",
                 # "ATC_ANG_PIT_P",
                 # "ATC_RAT_PIT_P",
                 # "ATC_RAT_PIT_I",

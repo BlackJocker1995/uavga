@@ -491,11 +491,11 @@ class Modeling(object):
             loss = deviation.sum(axis=1).sum(axis=1)
         return loss
 
-    @classmethod
-    def loss_discriminate(cls, patch_deviation: np.ndarray, loss_patch_size=5) -> np.ndarray:
-        patch_array = sliding_window_view(patch_deviation, loss_patch_size, axis=0)
-        patch_array_loss = patch_array.sum(axis=1).sum(axis=1)
-        return patch_array_loss
+    # @classmethod
+    # def loss_discriminate(cls, patch_deviation: np.ndarray, loss_patch_size=5) -> np.ndarray:
+    #     patch_array = sliding_window_view(patch_deviation, loss_patch_size, axis=0)
+    #     patch_array_loss = patch_array.sum(axis=1).sum(axis=1)
+    #     return patch_array_loss
 
     def cal_average_loss(self, status_data):
         # create predicted status of this status patch
