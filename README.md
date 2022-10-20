@@ -9,7 +9,7 @@ Update: 22-07-15, support px4
 ## Requirement
 Python package requirement: numpy ; pandas ; pymavlink ; pyulog ; keras ; tensorflow
 
-OS: The program is only test in Ubuntu 18.04 nad 20.04.
+OS: The program is only test in Ubuntu 18.04 and 20.04 (recommend).
 
 `
 pip3 install pymavlink pandas pyulog eventlet keras tensorflow
