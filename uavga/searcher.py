@@ -14,7 +14,7 @@ class SearchOptimizer(object):
         self.problem = Problem()
         self.start_value = None
         # Parameter
-        self.participle_param = toolConfig.PARAM
+        self.participle_param = toolConfig.PARAM_PART
         para_dict = load_param()
 
         # default value, step and boundary

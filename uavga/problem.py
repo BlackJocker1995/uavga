@@ -91,7 +91,7 @@ class ProblemGA(Problem, ea.Problem):
         :return:
         """
         np_config = param * self.step
-        np_config = pd.DataFrame(np_config, columns=toolConfig.PARAM)
+        np_config = pd.DataFrame(np_config, columns=toolConfig.PARAM_PART)
         return np_config
 
     def evaluate(self, x, y):
