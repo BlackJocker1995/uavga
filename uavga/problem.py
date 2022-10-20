@@ -9,7 +9,8 @@ from tensorflow.python.keras.models import load_model
 
 from Cptool.gaMavlink import GaMavlinkAPM
 from Cptool.config import toolConfig
-from Cptool.mavtool import min_max_scaler_param, load_param, read_unit_from_dict, pad_configuration_default_value
+from Cptool.mavtool import min_max_scaler_param, load_param, read_unit_from_dict, pad_configuration_default_value, \
+    select_sub_dict
 from ModelFit.approximate import CyLSTM
 
 
@@ -49,9 +50,9 @@ class ProblemGA(Problem, ea.Problem):
                             varTypes, lb, ub, lbin, ubin)
 
     def aimFunc(self, pop):
-        # 得到决策变量矩阵
         x = pop.Phen
         x = self.reasonable_range(x).to_numpy()
+
         # Padding the parameters if the configuration do not apply all parameters.
         if x.shape[1] != load_param().shape[1]:
             x = pad_configuration_default_value(x)
@@ -104,8 +105,10 @@ class ProblemGA(Problem, ea.Problem):
         :param param:
         :return:
         """
+        # default value, step and boundary
         para_dict = load_param()
-        step_unit = read_unit_from_dict(para_dict)
+        param_choice_dict = select_sub_dict(para_dict, toolConfig.PARAM_PART)
+        step_unit = read_unit_from_dict(param_choice_dict)
         return param * step_unit
 
 
@@ -167,5 +170,6 @@ class ProblemGAOld(Problem, ea.Problem):
         :return:
         """
         para_dict = load_param()
-        step_unit = read_unit_from_dict(para_dict)
+        param_choice_dict = select_sub_dict(para_dict, toolConfig.PARAM_PART)
+        step_unit = read_unit_from_dict(param_choice_dict)
         return param * step_unit

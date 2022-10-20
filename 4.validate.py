@@ -53,7 +53,8 @@ if __name__ == '__main__':
             if ((exit_data - value_vector).sum(axis=1).abs() < 0.00001).sum() > 0:
                 continue
 
-        configuration = pd.Series(value_vector, index=toolConfig.PARAM).to_dict()
+        configuration = pd.Series(value_vector, index=toolConfig.PARAM_PART).to_dict()
+        print(configuration)
         # start multiple SITL
         manager.start_multiple_sitl(device)
         manager.mav_monitor_init(GaMavlinkAPM, device)
@@ -71,7 +72,7 @@ if __name__ == '__main__':
 
         # if the result have no instability, skip.
         if not os.path.exists(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv'):
-            data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
+            data = pd.DataFrame(columns=(toolConfig.PARAM_PART + ['score', 'result']))
             data.to_csv(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv', index=False)
 
         while not os.access(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", os.W_OK):

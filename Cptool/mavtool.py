@@ -10,7 +10,8 @@ import datetime
 from timeit import default_timer as timer
 import signal
 
-def load_param() -> json:
+
+def load_param():
     """
     load parameter we want to fuzzing
     :return:
@@ -21,6 +22,19 @@ def load_param() -> json:
         path = 'Cptool/param_px4.json'
     with open(path, 'r') as f:
         return pd.DataFrame(json.loads(f.read()))
+
+
+def load_sub_param():
+    """
+    load parameter we want to fuzzing
+    :return:
+    """
+    if toolConfig.MODE == 'Ardupilot':
+        path = 'Cptool/param_ardu.json'
+    elif toolConfig.MODE == 'PX4':
+        path = 'Cptool/param_px4.json'
+    with open(path, 'r') as f:
+        return pd.DataFrame(json.loads(f.read()))[toolConfig.PARAM_PART]
 
 
 def get_default_values(para_dict):
@@ -63,7 +77,10 @@ def rename_bin(log_path, ranges):
 
 
 def min_max_scaler_param(param_value):
-    para_dict = load_param()
+    if param_value.shape[1] != load_param().shape[1]:
+        para_dict = load_sub_param()
+    else:
+        para_dict = load_param()
     param_choice_dict = para_dict
     #participle_param = toolConfig.PARAM
     #param_choice_dict = select_sub_dict(para_dict, participle_param)
