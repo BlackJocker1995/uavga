@@ -34,11 +34,18 @@ class ToolConfig:
         # Copter LOG Path
         self.__dict__["ARDUPILOT_LOG_PATH"] = '/media/rain/data'
 
+        #--------PATH ---------#
+        # STIL
+        self.__dict__["SITL_PATH"] = "/home/rain/ardupilot/Tools/autotest/sim_vehicle.py"
         # Airsim
         self.__dict__["AIRSIM_PATH"] = "/media/rain/data/airsim/Africa_Savannah/LinuxNoEditor/Africa_001.sh"
         # self.__dict__["AIRSIM_PATH"] = "/media/rain/data/airsim/Blocks/LinuxNoEditor/Blocks.sh"
         # PX4 LOG Path
         self.__dict__["PX4_RUN_PATH"] = '/home/rain/PX4-Autopilot'
+        # Jmavsim Path
+        self.__dict__["JMAVSIM_PATH"] = "/home/rain/PX4-Autopilot/Tools/jmavsim_run.sh"
+        # Morse path
+        self.__dict__["MORSE_PATH"] = "/home/rain/ardupilot/libraries/SITL/examples/Morse/quadcopter.py"
 
         self.__dict__["CLUSTER_CHOICE_NUM"] = 10
 
@@ -80,26 +87,26 @@ class ToolConfig:
             self.__dict__["PARAM"] = param_name
 
             self.__dict__["PARAM_PART"] = [
-                #"PSC_VELXY_P",
-                # "PSC_VELXY_I",
-                #"PSC_VELXY_D",
-                #"PSC_ACCZ_P",
-                #"PSC_ACCZ_I",
+                "PSC_VELXY_P",
+                "PSC_VELXY_I",
+                "PSC_VELXY_D",
+                "PSC_ACCZ_P",
+                "PSC_ACCZ_I",
                 "ATC_ANG_RLL_P",
                 "ATC_RAT_RLL_P",
                 "ATC_RAT_RLL_I",
-                "ATC_RAT_RLL_D",
+                # "ATC_RAT_RLL_D",
                 # "ATC_ANG_PIT_P",
                 # "ATC_RAT_PIT_P",
                 # "ATC_RAT_PIT_I",
-                # "ATC_RAT_PIT_D",
-                # "ATC_ANG_YAW_P",
-                # "ATC_RAT_YAW_P",
-                # "ATC_RAT_YAW_I",
-                # "ATC_RAT_YAW_D",
-                #"WPNAV_SPEED",
-                #"WPNAV_ACCEL",
-                #"ANGLE_MAX"
+                "ATC_RAT_PIT_D",
+                "ATC_ANG_YAW_P",
+                "ATC_RAT_YAW_P",
+                "ATC_RAT_YAW_I",
+                "ATC_RAT_YAW_D",
+                "WPNAV_SPEED",
+                "WPNAV_ACCEL",
+                "ANGLE_MAX"
             ]
 
             # self.__dict__["PARAM"] = [
@@ -137,14 +144,9 @@ class ToolConfig:
                 "MPC_Z_P",
                 "MC_PITCHRATE_P",
                 "MC_ROLLRATE_P",
-                # "MC_ROLLRATE_MAX",
                 "MC_YAWRATE_P",
-                # "MPC_THR_MIN",
-                # "MPC_THR_MAX",
                 "MPC_TILTMAX_AIR",
                 "MIS_YAW_ERR",
-                # "MPC_XY_VEL_MAX",
-                # "MC_PITCHRATE_MAX",
                 "MPC_Z_VEL_MAX_DN",
                 "MPC_Z_VEL_MAX_UP",
                 "MPC_TKO_SPEED"

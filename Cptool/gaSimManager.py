@@ -75,15 +75,15 @@ class GaSimManager(object):
             cmd = f'gnome-terminal -- {toolConfig.AIRSIM_PATH} ' \
                   f'-ResX={toolConfig.HEIGHT} -ResY={toolConfig.WEIGHT} -windowed'
         if toolConfig.SIM == 'Jmavsim':
-            cmd = f'gnome-terminal -- bash /home/rain/PX4-Autopilot/Tools/jmavsim_run.sh'
+            cmd = f'gnome-terminal -- bash {toolConfig.JMAVSIM_PATH}'
         if toolConfig.SIM == 'Morse':
-            cmd = f'gnome-terminal -- morse run /home/rain/ardupilot/libraries/SITL/examples/Morse/quadcopter.py'
+            cmd = f'gnome-terminal -- morse run {toolConfig.MORSE_PATH}'
         if toolConfig.SIM == 'Gazebo':
             cmd = f'gnome-terminal -- gazebo --verbose worlds/iris_arducopter_runway.world'
         if cmd is None:
             raise ValueError('Not support mode')
         logging.info(f'Start Simulator {toolConfig.SIM}')
-        self._sim_task = pexpect.spawn(cmd, cwd='/home/rain/')
+        self._sim_task = pexpect.spawn(cmd)
 
     def start_sitl(self):
         """
@@ -102,26 +102,26 @@ class GaSimManager(object):
         if toolConfig.MODE == 'Ardupilot':
             if toolConfig.SIM == 'Airsim':
                 if toolConfig.HOME is not None:
-                    cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter " \
+                    cmd = f"python3 {toolConfig.SITL_PATH} -v ArduCopter " \
                           f"--location={toolConfig.HOME}" \
                           f" -f airsim-copter --out=127.0.0.1:14550 --out=127.0.0.1:14540 " \
                           f" -S {toolConfig.SPEED}"
                 else:
-                    cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f airsim-copter " \
+                    cmd = f"python3 {toolConfig.SITL_PATH} -v ArduCopter -f airsim-copter " \
                           f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -S {toolConfig.SPEED}"
             if toolConfig.SIM == 'Morse':
-                cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter --model morse-quad " \
+                cmd = f"python3 {toolConfig.SITL_PATH}  -v ArduCopter --model morse-quad " \
                       f"--add-param-file=/home/rain/ardupilot/libraries/SITL/examples/Morse/quadcopter.parm  " \
                       f"--out=127.0.0.1:14550 -S {toolConfig.SPEED}"
             if toolConfig.SIM == 'Gazebo':
-                cmd = f'python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py -f gazebo-iris -v ArduCopter ' \
+                cmd = f'python3 {toolConfig.SITL_PATH} -f gazebo-iris -v ArduCopter ' \
                       f'--out=127.0.0.1:14550 -S {toolConfig.SPEED}'
             if toolConfig.SIM == 'SITL':
                 if toolConfig.HOME is not None:
-                    cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py --location={toolConfig.HOME} " \
+                    cmd = f"python3 {toolConfig.SITL_PATH}  --location={toolConfig.HOME} " \
                           f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -v ArduCopter -w -S {toolConfig.SPEED} "
                 else:
-                    cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py " \
+                    cmd = f"python3 {toolConfig.SITL_PATH}  " \
                           f"--out=127.0.0.1:14550 --out=127.0.0.1:14540 -v ArduCopter -w -S {toolConfig.SPEED} "
             self._sitl_task = pexpect.spawn(cmd, cwd=toolConfig.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8')
 
@@ -246,7 +246,7 @@ class GaSimManager(object):
                         break
                 elif status_message.severity == 2 or status_message.severity == 0:
                     # Appear error, break loop and return false
-                    if "SIM Hit ground at" in line:
+                    if "SIM Hit ground" in line:
                         result = 'crash'
                         break
                     elif "Potential Thrust Loss" in line:

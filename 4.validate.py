@@ -86,7 +86,7 @@ if __name__ == '__main__':
         with open(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", 'a+') as f:
             csv_file = csv.writer(f)
             csv_file.writerow(tmp_row)
-            logging.debug("Write row to params{toolConfig.EXE}.csv.")
+            logging.debug(f"Write row to params{toolConfig.EXE}.csv.")
 
         manager.stop_sitl()
         i += 1
