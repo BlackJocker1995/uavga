@@ -1,5 +1,5 @@
 """
-SimManager Version: 1.2
+SimManager Version: 4.0
 """
 import logging
 import math
@@ -18,35 +18,10 @@ from pymavlink import mavextra, mavwp, mavutil
 
 from Cptool.gaMavlink import GaMavlinkAPM, DroneMavlink
 from Cptool.config import toolConfig
+from Cptool.mavtool import Location
 
 
-class Location:
-    def __init__(self, x, y=None, timeS=0):
-        if y is None:
-            self.x = x.x
-            self.y = x.y
-        else:
-            self.x = x
-            self.y = y
-        self.timeS = timeS
-        self.npa = np.array([x, y])
-
-    def __sub__(self, other):
-        return Location(self.x-other.x, self.y-other.y)
-
-    def __str__(self):
-        return f"X: {self.x} ; Y: {self.y}"
-
-    def sum(self):
-        return self.npa.sum()
-
-    @classmethod
-    def distance(cls, point1, point2):
-        return mavextra.distance_lat_lon(point1.x, point1.y,
-                                         point2.x, point2.y)
-
-
-class GaSimManager(object):
+class SimManager(object):
 
     def __init__(self, debug: bool = False):
         self._sim_task = None
@@ -64,9 +39,12 @@ class GaSimManager(object):
             logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                                 level=logging.INFO)
 
+    """
+    Base Function
+    """
     def start_sim(self):
         """
-        启动AIRSIM_PATH目录下的Airsim模拟器
+        start simulator
         :return:
         """
         # Airsim
@@ -163,7 +141,12 @@ class GaSimManager(object):
                 and toolConfig.MODE == "PX4":
             os.remove(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016")
 
-        cmd = f"python3 /home/rain/ardupilot/Tools/autotest/sim_vehicle.py --location=AVC_plane " \
+        if toolConfig.HOME is not None:
+            cmd = f"python3 {toolConfig.SITL_PATH} --location={toolConfig.HOME} " \
+                  f"--out=127.0.0.1:1455{drone_i} --out=127.0.0.1:1454{drone_i} " \
+                  f"-v ArduCopter -w -S {toolConfig.SPEED} --instance {drone_i}"
+        else:
+            cmd = f"python3 {toolConfig.SITL_PATH} " \
                   f"--out=127.0.0.1:1455{drone_i} --out=127.0.0.1:1454{drone_i} " \
                   f"-v ArduCopter -w -S {toolConfig.SPEED} --instance {drone_i}"
 
@@ -195,6 +178,102 @@ class GaSimManager(object):
                     self._sitl_task.send("param set CBRK_FLIGHTTERM 0 \n")
                     return True
 
+    def sim_monitor_init(self, simulator_class):
+        """
+        init airsim monitor
+        :return:
+        """
+        self.sim_monitor = simulator_class(recv_msg_queue=self.mav_msg_queue, send_msg_queue=self.sim_msg_queue)
+        time.sleep(3)
+
+    def start_mav_monitor(self):
+        """
+        start monitor
+        :return:
+        """
+        self.mav_monitor.start()
+
+    def start_sim_monitor(self):
+        """
+        启动Airsim监控进程
+        :return:
+        """
+        self.sim_monitor.start()
+
+    """
+    Mavlink Operation
+    """
+
+    def mav_monitor_connect(self):
+        """
+        mavlink connect
+        :return:
+        """
+        return self.mav_monitor.connect()
+
+    def mav_monitor_set_mission(self, mission_file, random: bool = False):
+        """
+        set mission
+        :param mission_file: file path
+        :param random:
+        :return:
+        """
+        return self.mav_monitor.set_mission(mission_file, random)
+
+    def mav_monitor_set_param(self, params, values):
+        """
+        set drone configuration
+        :return:
+        """
+        for param, value in zip(params, values):
+            self.mav_monitor.set_param(param, value)
+
+    def mav_monitor_get_param(self, param):
+        """
+        get drone configuration
+        :return:
+        """
+        return self.mav_monitor.get_param(param)
+
+    def mav_monitor_start_mission(self):
+        """
+        start mission
+        :return:
+        """
+        self.mav_monitor.start_mission()
+
+    def stop_sitl(self):
+        """
+        stop the simulator
+        :return:
+        """
+        self._sitl_task.sendcontrol('c')
+        while True:
+            line = self._sitl_task.readline()
+            if not line:
+                break
+        self._sitl_task.close(force=True)
+        logging.info('Stop SITL task.')
+        self.sim_close_msg()
+        logging.debug('Send mavclosed to Airsim.')
+
+    """
+    Other get/set
+    """
+    def get_mav_monitor(self):
+        return self.mav_monitor
+
+    def sitl_task(self) -> spawn:
+        return self._sitl_task
+
+
+class GaSimManager(SimManager):
+    def __init__(self, debug: bool = False):
+        super(GaSimManager, self).__init__(debug)
+
+    """
+    Advanced Function
+    """
     def mav_monitor_error(self):
         """
         monitor error during the flight
@@ -345,72 +424,3 @@ class GaSimManager(object):
 
         logging.info(f"Monitor result: {result}")
         return result
-
-    def mav_monitor_connect(self):
-        """
-        mavlink connect
-        :return:
-        """
-        return self.mav_monitor.connect()
-
-    def mav_monitor_set_mission(self, mission_file, random: bool = False):
-        """
-        set mission
-        :param mission_file: file path
-        :param random:
-        :return:
-        """
-        return self.mav_monitor.set_mission(mission_file, random)
-
-    def mav_monitor_set_param(self, params, values):
-        """
-        set drone configuration
-        :return:
-        """
-        for param, value in zip(params, values):
-            self.mav_monitor.set_param(param, value)
-
-    def mav_monitor_get_param(self, param):
-        """
-        get drone configuration
-        :return:
-        """
-        return self.mav_monitor.get_param(param)
-
-    def mav_monitor_start_mission(self):
-        """
-        start mission
-        :return:
-        """
-        self.mav_monitor.start_mission()
-
-    def start_mav_monitor(self):
-        """
-        start monitor
-        :return:
-        """
-        self.mav_monitor.start()
-
-    def sim_close_msg(self):
-        pass
-
-    def stop_sitl(self):
-        """
-        stop the simulator
-        :return:
-        """
-        self._sitl_task.sendcontrol('c')
-        while True:
-            line = self._sitl_task.readline()
-            if not line:
-                break
-        self._sitl_task.close(force=True)
-        logging.info('Stop SITL task.')
-        self.sim_close_msg()
-        logging.debug('Send mavclosed to Airsim.')
-
-    def get_mav_monitor(self):
-        return self.mav_monitor
-
-    def sitl_task(self) -> spawn:
-        return self._sitl_task

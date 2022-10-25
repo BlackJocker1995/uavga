@@ -3,13 +3,37 @@ import os
 
 import numpy as np
 import pandas as pd
-from pymavlink import mavutil, mavwp
+from pymavlink import mavutil, mavwp, mavextra
 from Cptool.config import toolConfig
 import sys, select, os
 import datetime
 from timeit import default_timer as timer
 import signal
 
+class Location:
+    def __init__(self, x, y=None, timeS=0):
+        if y is None:
+            self.x = x.x
+            self.y = x.y
+        else:
+            self.x = x
+            self.y = y
+        self.timeS = timeS
+        self.npa = np.array([x, y])
+
+    def __sub__(self, other):
+        return Location(self.x-other.x, self.y-other.y)
+
+    def __str__(self):
+        return f"X: {self.x} ; Y: {self.y}"
+
+    def sum(self):
+        return self.npa.sum()
+
+    @classmethod
+    def distance(cls, point1, point2):
+        return mavextra.distance_lat_lon(point1.x, point1.y,
+                                         point2.x, point2.y)
 
 def load_param():
     """
