@@ -1,5 +1,5 @@
 """
-SimManager Version: 4.0
+SimManager Version: 4.0 22-10-24
 """
 import logging
 import math
@@ -254,7 +254,6 @@ class SimManager(object):
                 break
         self._sitl_task.close(force=True)
         logging.info('Stop SITL task.')
-        self.sim_close_msg()
         logging.debug('Send mavclosed to Airsim.')
 
     """
