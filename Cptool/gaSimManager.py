@@ -280,7 +280,7 @@ class GaSimManager(SimManager):
         """
         logging.info(f'Start error monitor.')
         # Setting
-        mission_time_out_th = 180
+        mission_time_out_th = 240
         result = 'pass'
         # Waypoint
         loader = mavwp.MAVWPLoader()

@@ -16,34 +16,40 @@ pip3 install pymavlink pandas pyulog eventlet keras tensorflow
 `
 
 
-Simulation requirement: [SITL](https://github.com/ArduPilot/ardupilot).
+Simulation requirement: Ardupilot [SITL](https://github.com/ArduPilot/ardupilot). We suggest applying python3 to run STIL simulator.
+Jmavsim for PX4, which requires source build in PX4 file.
 
-The initializer of simulator needs to change the path in the file `Cptool.gaSimManager.py` with function `start_sitl`.
+The initializer of Ardupilot simulator needs to change the path in the file `Cptool.config.py` with item
+`SITL_PATH`.
+
 For example,
 `
 python3 {Your Ardupilot path}/Tools/autotest/sim_vehicle.py --location=AVC_plane --out=127.0.0.1:14550 -v ArduCopter -w -S {toolConfig.SPEED} "
-`.
+`
 
 
 ## Deployment
 The configuration is in `Cptool.config.py`.
 
-If you want to try PX4 simulation, import toolConfig and use `toolConfig.select_mode("PX4")`
+If you want to try PX4 simulation, change the sentence `toolConfig.select_mode("Ardupilot")` to `toolConfig.select_mode("PX4")`
 
 ## Configuration of System config.py
-ARDUPILOT_LOG_PATH: log path of ardupilot running, noted that, the path needs to have a flag file "logs/LASTLOG.TXT"
+* ARDUPILOT_LOG_PATH: log path of ardupilot running, noted that, the path needs to have a flag file "logs/LASTLOG.TXT".
+Or you can manually run the simulation at first in {ARDUPILOT_LOG_PATH} to auto generate flag file. 
 
-SIM: simulation type.
+The log path for PX4 is in `{PX4_Path}/build/px4_sitl_default/logs/`, which is no need to change.
 
-AIRSIM_PATH: if select airsim, you should set the execution path.
+* SIM: simulation type.
 
-PX4_RUN_PATH: if select PX4, you should set the execution path.
+* AIRSIM_PATH: if select airsim, you should set the execution path.
 
-PARAM: the parameter used in predictor.
+* PX4_RUN_PATH: if select PX4, you should set the execution path.
 
-PARAM_PART: the parameter that participate in fuzzing.
+* PARAM: the parameter used in predictor.
 
-INPUT_LEN: input length of predictor.
+* PARAM_PART: the parameter that participate in fuzzing.
+
+* INPUT_LEN: input length of predictor.
 
 
 ## Description
@@ -67,5 +73,7 @@ INPUT_LEN: input length of predictor.
 `4.validate.py` validate configurations through simulator.
 
 If you want to validate with multiple simulator, you can use validate.py -- device {xxx} to start multiple SITL
+
+`4.validate_thread.py` validate configurations through multiple simulators, where use --thread {xx} to launch multiple tab validate.py
 
 `5.range.py` summary range guideline by validated result.
