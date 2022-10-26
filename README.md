@@ -3,6 +3,8 @@ This is an approach source code of ICSearcher.
 
 The original code of the [paper(LGDFuzzer)](https://dl.acm.org/doi/10.1145/3510003.3510084) is in branch [lgdfuzzer](https://github.com/BlackJocker1995/uavga/tree/lgdfuzzer)
 
+ICSearcher is an improved version of LGDFuzzer.
+
 # Log
 Update: 22-07-15, support px4
 
