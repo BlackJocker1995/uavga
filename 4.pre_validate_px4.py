@@ -19,7 +19,7 @@ from Cptool.gaSimManager import GaSimManager
 from uavga.fuzzer import return_random_n_gen, return_cluster_thres_gen
 
 if __name__ == '__main__':
-
+    toolConfig.select_mode("PX4")
     # Get Fuzzing result and validate
     candidate_var, candidate_obj = return_cluster_thres_gen(0.35)
     candidate_obj = np.array(candidate_obj, dtype=float).round(8)

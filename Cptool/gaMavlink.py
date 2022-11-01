@@ -621,6 +621,7 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
 
     def __init__(self, port, recv_msg_queue=None, send_msg_queue=None):
         super(GaMavlinkPX4, self).__init__(port, recv_msg_queue, send_msg_queue)
+        self.log_file = None
 
     def wait_complete(self, remain_fail=False, timeout=60 * 5):
         if not self._master:
@@ -668,6 +669,24 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
         except KeyboardInterrupt:
             logging.info('Key bordInterrupt! exit')
             return False
+
+    def init_ulg_log_file(self, device_i=None):
+        if device_i is None:
+            log_path = f"{toolConfig.PX4_LOG_PATH}/*.ulg"
+
+            list_of_files = glob.glob(log_path)  # * means all if need specific format then *.csv
+            latest_file = max(list_of_files, key=os.path.getctime)
+            self.log_file = latest_file
+            logging.info(f"Current log file: {latest_file}")
+        else:
+            now = time.localtime()
+            now_time = time.strftime("%Y-%m-%d", now)
+            log_path = f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/instance_{device_i}/log/{now_time}/*.ulg"
+
+            list_of_files = glob.glob(log_path)  # * means all if need specific format then *.csv
+            latest_file = max(list_of_files, key=os.path.getctime)
+            self.log_file = latest_file
+            logging.info(f"Current log file: {latest_file}")
 
     @staticmethod
     def fill_and_process_pd_log(pd_array: pd.DataFrame):

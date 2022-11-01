@@ -128,7 +128,7 @@ def run_fuzzing(np_data, num=0):
         # Random select
         index = np.random.choice(np.arange(segment_csv.shape[0]), num)
         segment_csv = segment_csv[index, :, :]
-    segment_csv = random_choice_dbscan(segment_csv, eps=0.3)
+    segment_csv = random_choice_dbscan(segment_csv, eps=0.4)
 
     obj_population = []  # 种群
 

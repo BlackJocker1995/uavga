@@ -63,6 +63,18 @@ class SimManager(object):
         logging.info(f'Start Simulator {toolConfig.SIM}')
         self._sim_task = pexpect.spawn(cmd)
 
+    def start_multiple_sim(self, drone_i=0):
+        """
+        start multiple simulator (only jmavsim now)
+        :return:
+        """
+        # Airsim
+        cmd = None
+        if toolConfig.SIM == 'Jmavsim':
+            port = 4560 + int(drone_i)
+            cmd = f'{toolConfig.JMAVSIM_PATH} -p {port} -l'
+        self._sim_task = pexpect.spawn(cmd, cwd=toolConfig.PX4_RUN_PATH, timeout=30, encoding='utf-8')
+
     def start_sitl(self):
         """
         start the simulator
@@ -133,24 +145,34 @@ class SimManager(object):
         :param drone_i:
         :return:
         """
-        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin"):
-            os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin")
-        if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm"):
-            os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm")
-        if os.path.exists(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016") \
-                and toolConfig.MODE == "PX4":
-            os.remove(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016")
+        if toolConfig.MODE == 'Ardupilot':
+            if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin"):
+                os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/eeprom.bin")
+            if os.path.exists(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm"):
+                os.remove(f"{toolConfig.ARDUPILOT_LOG_PATH}/mav.parm")
 
-        if toolConfig.HOME is not None:
-            cmd = f"python3 {toolConfig.SITL_PATH} --location={toolConfig.HOME} " \
-                  f"--out=127.0.0.1:1455{drone_i} --out=127.0.0.1:1454{drone_i} " \
-                  f"-v ArduCopter -w -S {toolConfig.SPEED} --instance {drone_i}"
-        else:
-            cmd = f"python3 {toolConfig.SITL_PATH} " \
-                  f"--out=127.0.0.1:1455{drone_i} --out=127.0.0.1:1454{drone_i} " \
-                  f"-v ArduCopter -w -S {toolConfig.SPEED} --instance {drone_i}"
+            if toolConfig.HOME is not None:
+                cmd = f"python3 {toolConfig.SITL_PATH} --location={toolConfig.HOME} " \
+                      f"--out=127.0.0.1:1455{drone_i} --out=127.0.0.1:1454{drone_i} " \
+                      f"-v ArduCopter -w -S {toolConfig.SPEED} --instance {drone_i}"
+            else:
+                cmd = f"python3 {toolConfig.SITL_PATH} " \
+                      f"--out=127.0.0.1:1455{drone_i} --out=127.0.0.1:1454{drone_i} " \
+                      f"-v ArduCopter -w -S {toolConfig.SPEED} --instance {drone_i}"
 
-        self._sitl_task = (pexpect.spawn(cmd, cwd=toolConfig.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8'))
+            self._sitl_task = (pexpect.spawn(cmd, cwd=toolConfig.ARDUPILOT_LOG_PATH, timeout=30, encoding='utf-8'))
+
+        if toolConfig.MODE == toolConfig.MODE == 'PX4':
+
+            if os.path.exists(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016") \
+                    and toolConfig.MODE == "PX4":
+                os.remove(f"{toolConfig.PX4_RUN_PATH}/build/px4_sitl_default/tmp/rootfs/eeprom/parameters_10016")
+
+            if toolConfig.SIM == 'Jmavsim':
+                cmd = f"{toolConfig.PX4_RUN_PATH}/Tools/sitl_multiple_run_single.sh {drone_i}"
+
+            self._sitl_task = pexpect.spawn(cmd, cwd=toolConfig.PX4_RUN_PATH, timeout=30, encoding='utf-8')
+
         logging.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM} - {drone_i}]")
 
     def mav_monitor_init(self, mavlink_class: Type[DroneMavlink] = DroneMavlink, drone_i=0):
@@ -256,6 +278,11 @@ class SimManager(object):
         logging.info('Stop SITL task.')
         logging.debug('Send mavclosed to Airsim.')
 
+    def stop_sim(self):
+        self._sim_task.sendcontrol('c')
+        self._sim_task.close(force=True)
+        logging.info('Stop Sim task.')
+
     """
     Other get/set
     """
@@ -304,8 +331,8 @@ class GaSimManager(SimManager):
 
         start_time = time.time()
         while True:
-            # time.sleep(0.1)
             if toolConfig.MODE == "PX4":
+                time.sleep(0.1)
                 self.mav_monitor.gcs_msg_request()
             status_message = self.mav_monitor.get_msg(["STATUSTEXT"])
             position_msg = self.mav_monitor.get_msg(["GLOBAL_POSITION_INT", "MISSION_CURRENT"])
