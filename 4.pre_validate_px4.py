@@ -25,6 +25,6 @@ if __name__ == '__main__':
     candidate_obj = np.array(candidate_obj, dtype=float).round(8)
     candidate_var = np.array(candidate_var, dtype=float).round(8)
 
-    with open(f'result/{toolConfig.MODE}/pop.pkl', 'wb') as f:
+    with open(f'result/{toolConfig.MODE}/pop{toolConfig.EXE}.pkl', 'wb') as f:
         pickle.dump([candidate_obj, candidate_var], f)
 

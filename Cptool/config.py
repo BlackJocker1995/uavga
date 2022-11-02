@@ -134,22 +134,21 @@ class ToolConfig:
                 param_name = pd.DataFrame(json.loads(f.read())).columns.tolist()
             self.__dict__["PARAM"] = param_name
 
-            # TODO: px4 data
             self.__dict__["PARAM_PART"] = [
                 "MC_ROLL_P",
                 "MC_PITCH_P",
                 "MC_YAW_P",
                 "MC_YAW_WEIGHT",
-                "MPC_XY_P",
-                "MPC_Z_P",
-                "MC_PITCHRATE_P",
-                "MC_ROLLRATE_P",
-                "MC_YAWRATE_P",
-                "MPC_TILTMAX_AIR",
-                "MIS_YAW_ERR",
-                "MPC_Z_VEL_MAX_DN",
-                "MPC_Z_VEL_MAX_UP",
-                "MPC_TKO_SPEED"
+                # "MPC_XY_P",
+                # "MPC_Z_P",
+                # "MC_PITCHRATE_P",
+                # "MC_ROLLRATE_P",
+                # "MC_YAWRATE_P",
+                # "MPC_TILTMAX_AIR",
+                # "MIS_YAW_ERR",
+                # "MPC_Z_VEL_MAX_DN",
+                # "MPC_Z_VEL_MAX_UP",
+                # "MPC_TKO_SPEED"
             ]
 
         if len(self.__dict__["PARAM_PART"]) == len(self.__dict__["PARAM"]):
