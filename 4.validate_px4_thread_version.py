@@ -77,24 +77,21 @@ if __name__ == '__main__':
 
         # if the result have no instability, skip.
         if not os.path.exists(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv'):
-            while not os.access(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", os.W_OK):
-                time.sleep(0.1)
-                continue
-            data = pd.DataFrame(columns=(toolConfig.PARAM + ['score', 'result']))
-        else:
-            while not os.access(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", os.W_OK):
-                time.sleep(0.1)
-                continue
-            # Add instability result
-            tmp_row = value_vector.tolist()
-            tmp_row.append(vars[0])
-            tmp_row.append(result)
+            data = pd.DataFrame(columns=(toolConfig.PARAM_PART + ['score', 'result']))
+            data.to_csv(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv', index=False)
 
-            # Write Row
-            with open(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", 'a+') as f:
-                csv_file = csv.writer(f)
-                csv_file.writerow(tmp_row)
-                logging.debug(f"Write row to params{toolConfig.EXE}.csv.")
+        while not os.access(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", os.W_OK):
+            continue
+            # Add instability result
+        tmp_row = value_vector.tolist()
+        tmp_row.append(vars[0])
+        tmp_row.append(result)
+
+        # Write Row
+        with open(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", 'a+') as f:
+            csv_file = csv.writer(f)
+            csv_file.writerow(tmp_row)
+            logging.debug(f"Write row to params{toolConfig.EXE}.csv.")
 
         manager.stop_sitl()
         manager.stop_sim()

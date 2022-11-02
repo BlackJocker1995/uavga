@@ -332,7 +332,7 @@ class GaSimManager(SimManager):
         start_time = time.time()
         while True:
             if toolConfig.MODE == "PX4":
-                time.sleep(0.1)
+                # time.sleep(0.1)
                 self.mav_monitor.gcs_msg_request()
             status_message = self.mav_monitor.get_msg(["STATUSTEXT"])
             position_msg = self.mav_monitor.get_msg(["GLOBAL_POSITION_INT", "MISSION_CURRENT"])
