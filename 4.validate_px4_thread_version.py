@@ -56,7 +56,7 @@ if __name__ == '__main__':
             if ((exit_data - value_vector).sum(axis=1).abs() < 0.00001).sum() > 0:
                 continue
 
-        configuration = pd.Series(value_vector, index=toolConfig.PARAM).to_dict()
+        configuration = pd.Series(value_vector, index=toolConfig.PARAM_PART).to_dict()
         # start multiple SITL
         manager.start_multiple_sitl(device)
         manager.start_multiple_sim(device)
