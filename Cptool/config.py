@@ -139,16 +139,16 @@ class ToolConfig:
                 "MC_PITCH_P",
                 "MC_YAW_P",
                 "MC_YAW_WEIGHT",
-                # "MPC_XY_P",
-                # "MPC_Z_P",
-                # "MC_PITCHRATE_P",
-                # "MC_ROLLRATE_P",
-                # "MC_YAWRATE_P",
-                # "MPC_TILTMAX_AIR",
-                # "MIS_YAW_ERR",
-                # "MPC_Z_VEL_MAX_DN",
-                # "MPC_Z_VEL_MAX_UP",
-                # "MPC_TKO_SPEED"
+                "MPC_XY_P",
+                "MPC_Z_P",
+                "MC_PITCHRATE_P",
+                "MC_ROLLRATE_P",
+                "MC_YAWRATE_P",
+                "MPC_TILTMAX_AIR",
+                "MIS_YAW_ERR",
+                "MPC_Z_VEL_MAX_DN",
+                "MPC_Z_VEL_MAX_UP",
+                "MPC_TKO_SPEED"
             ]
 
         if len(self.__dict__["PARAM_PART"]) == len(self.__dict__["PARAM"]):
