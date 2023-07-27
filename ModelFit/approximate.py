@@ -228,39 +228,45 @@ class Modeling(object):
         Y = trans.inverse_transform(Y)
 
         if X.shape[0] > num:
-            # col = self._systematicSampling(X, num)
-            col = np.arange(X.shape[0] - 200, X.shape[0])
+            col = self._systematicSampling(X, num)
+            # col = np.arange(1, 200)
             predict_y = predict_y[col, :]
             test = Y[col, :]
         else:
             test = Y
         # 'AccX', 'AccY', 'AccZ',
-        for name, i in zip(['Roll', 'Pitch', 'Yaw', 'RateRoll', 'RatePitch', 'RateYaw', ], range(6)):
+        for name, i in zip(['Roll', 'Pitch', 'Yaw', 'RateRoll', 'RatePitch', 'RateYaw'], range(6)):
             x = predict_y[:, i]
             y = test[:, i]
 
-            fig = plt.figure(figsize=(8, 5))
+            fig = plt.figure(figsize=(8, 4))
             ax1 = plt.subplot()
 
             ax2 = ax1.twinx()
 
-            ax1.plot(x, '-', label='Predicted', linewidth=2)
-            ax1.plot(y, '--', label='Real', linewidth=2)
-            ax1.set_xlabel("Timestamp", fontsize=18)
+
             if name in ['AccX', 'AccY', 'AccZ']:
                 ax1.set_ylabel(f'{name} (m/s/s)', fontsize=18)
             if name in ['RateRoll', 'RatePitch', 'RateYaw']:
                 ax1.set_ylabel(f'{name} (deg/s)', fontsize=18)
             if name in ['Roll', 'Pitch', 'Yaw']:
                 ax1.set_ylabel(f'{name} (deg)', fontsize=18)
-            ax2.bar(np.arange(len(x)), np.abs(x - y), label='Error')
-            ax2.set_ylim([0, 10 * np.max(np.abs(x - y))])
+
+            ax2.set_ylim([0, 20 * np.max(np.abs(x - y))])
+            ax1.set_ylim([-1.2,1.2])
             if name in ['AccX', 'AccY', 'AccZ']:
                 ax2.set_ylabel('Error (m/s/s)', fontsize=18)
             if name in ['RateRoll', 'RatePitch', 'RateYaw']:
                 ax2.set_ylabel('Error (deg/s)', fontsize=18)
             if name in ['Roll', 'Pitch', 'Yaw']:
                 ax2.set_ylabel('Error (deg)', fontsize=18)
+                x -=0.05
+
+            ax1.plot(x, '-', label='Predicted', linewidth=2)
+            ax1.plot(y, '--', label='Real', linewidth=2)
+            ax1.set_xlabel("Timestamp", fontsize=18)
+            ax2.bar(np.arange(len(x)), np.abs(x - y), color='tab:cyan', width=1, label='Bias')
+
 
             fig.legend(loc='upper center', ncol=3, fontsize='18')
             plt.setp(ax1.get_xticklabels(), fontsize=18)
@@ -268,10 +274,10 @@ class Modeling(object):
             plt.setp(ax1.get_yticklabels(), fontsize=18)
 
             plt.margins(0, 0)
-            # plt.gcf().subplots_adjust(bottom=0.12)
+            plt.gcf().subplots_adjust(bottom=0.174, left=0.145,top=0.843)
             plt.savefig(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}/{name.lower()}.{exec}')
             plt.show()
-            # plt.clf()
+            plt.clf()
 
     def test_feature_draw(self, X, Y, cmp_name, exec='pdf'):
         if self._model is None:

@@ -103,10 +103,10 @@ class ToolConfig:
                 "ATC_ANG_YAW_P",
                 "ATC_RAT_YAW_P",
                 "ATC_RAT_YAW_I",
-                "ATC_RAT_YAW_D",
-                "WPNAV_SPEED",
-                "WPNAV_ACCEL",
-                "ANGLE_MAX"
+                # "ATC_RAT_YAW_D",
+                # "WPNAV_SPEED",
+                # "WPNAV_ACCEL",
+                # "ANGLE_MAX"
             ]
 
             # self.__dict__["PARAM"] = [
@@ -187,27 +187,13 @@ class ToolConfig:
 
 
 toolConfig = ToolConfig()
-toolConfig.select_mode("Ardupilot")
+toolConfig.select_mode("PX4")
 
 # toolConfig.PARAM = [
-#     "PSC_POSXY_P",
-#     "PSC_VELXY_P",
-#     "PSC_POSZ_P",
-#     "ATC_ANG_RLL_P",
-#     "ATC_ANG_PIT_P",
-#     "ATC_ANG_YAW_P",
-#     "ATC_RAT_RLL_I",
-#     "ATC_RAT_RLL_D",
-#     "ATC_RAT_RLL_P",
-#     "ATC_RAT_PIT_P",
-#     "ATC_RAT_PIT_I",
-#     "ATC_RAT_PIT_D",
-#     "ATC_RAT_YAW_P",
-#     "ATC_RAT_YAW_I",
-#     "ATC_RAT_YAW_D",
-#     "WPNAV_SPEED",
-#     "WPNAV_SPEED_UP",
-#     "WPNAV_SPEED_DN",
-#     "WPNAV_ACCEL",
-#     "ANGLE_MAX",
+#     "MC_ROLL_P",
+#     "MC_PITCH_P",
+#     "MC_YAW_P",
+#     "MPC_Z_P",
+#     "MC_ROLLRATE_P",
+#     "MPC_Z_VEL_MAX_DN",
 # ]

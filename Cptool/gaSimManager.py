@@ -170,6 +170,15 @@ class SimManager(object):
 
             if toolConfig.SIM == 'Jmavsim':
                 cmd = f"{toolConfig.PX4_RUN_PATH}/Tools/sitl_multiple_run_single.sh {drone_i}"
+                os.environ['PX4_SIM_SPEED_FACTOR'] = f"{toolConfig.SPEED}"
+                if toolConfig.HOME is None:
+                    os.environ['PX4_HOME_LAT'] = "-35.363261"
+                    os.environ['PX4_HOME_LON'] = "149.165230"
+                    os.environ['PX4_HOME_ALT'] = "583.730592"
+                else:
+                    os.environ['PX4_HOME_LAT'] = "40.072842"
+                    os.environ['PX4_HOME_LON'] = "-105.230575"
+                    os.environ['PX4_HOME_ALT'] = "0.000000"
 
             self._sitl_task = pexpect.spawn(cmd, cwd=toolConfig.PX4_RUN_PATH, timeout=30, encoding='utf-8')
 
@@ -307,7 +316,7 @@ class GaSimManager(SimManager):
         """
         logging.info(f'Start error monitor.')
         # Setting
-        mission_time_out_th = 240
+        mission_time_out_th = 200
         result = 'pass'
         # Waypoint
         loader = mavwp.MAVWPLoader()
@@ -340,41 +349,47 @@ class GaSimManager(SimManager):
             # System status message
             if status_message is not None and status_message.get_type() == "STATUSTEXT":
                 line = status_message.text
+                logging.debug(f"Status message: {status_message}")
                 # print(status_message)
                 if status_message.severity == 6:
-                    if "Disarming" in line or "landed" in line or "Landing" in line:
+                    if "Disarming" in line or "landed" in line or "Landing" in line or "Land" in line:
                         # if successful landed, break the loop and return true
-                        logging.info(f"Successful break the loop.")
+                        logging.info("Successful break the loop.")
                         break
                     if "preflight disarming" in line:
                         result = 'PreArm Failed'
                         break
+                    # if "SIM Hit ground" in line:
+                    #     result = 'crash'
+                    #     break
                 elif status_message.severity == 2 or status_message.severity == 0:
                     # Appear error, break loop and return false
-                    if "SIM Hit ground" in line:
+                    if "SIM Hit ground" in line \
+                            or "Crash" in line \
+                            or "Failsafe enabled: no global position" in line \
+                            or "failure detected" in line:
                         result = 'crash'
                         break
                     elif "Potential Thrust Loss" in line:
                         result = 'Thrust Loss'
                         break
-                    elif "Crash" in line \
-                            or "Failsafe enabled: no global position" in line \
-                            or "failure detected" in line:
-                        result = 'crash'
-                        break
-                    elif "PreArm" in line or "speed has been constrained by max speed" in line:
+                    elif "PreArm" in line:  # or "speed has been constrained by max speed" in line:
                         result = 'PreArm Failed'
                         break
 
             if position_msg is not None and position_msg.get_type() == "MISSION_CURRENT":
                 # print(position_msg)
-                if int(position_msg.seq) != current_mission and int(position_msg.seq) != 6:
+                if int(position_msg.seq) > current_mission and int(position_msg.seq) != 6:
                     logging.debug(f"Mission change {current_mission} -> {position_msg.seq}")
                     lpoint1 = Location(loader.wpoints[current_mission])
                     lpoint2 = Location(loader.wpoints[position_msg.seq])
+
                     # Start Check
-                    if int(position_msg.seq) == 1:
+                    if int(position_msg.seq) == 2:
                         start_check = True
+                    if int(position_msg.seq) == 1 and toolConfig.MODE == "PX4":
+                        start_check = True
+
                     current_mission = int(position_msg.seq)
                     if toolConfig.MODE == "PX4" and int(position_msg.seq) == 5:
                         start_check = False
@@ -389,26 +404,22 @@ class GaSimManager(SimManager):
 
                 # Calculate distance
                 moving_dis = Location.distance(pre_location, position)
+                # time
                 time_step = position.timeS - pre_location.timeS
-                alt_change = abs(pre_alt- alt)
+                # altitude change
+                alt_change = abs(pre_alt - alt)
                 # Update position
                 pre_location.x = position_lat
                 pre_location.y = position_lon
                 pre_alt = alt
 
                 if start_check:
-                    if alt < 1:
-                        low_lat_num += 1
-                    else:
-                        small_move_num = 0
-
                     velocity = moving_dis / time_step
-                    # logging.debug(f"Velocity {velocity}.")
-                    # Is small move?
-                    # logging.debug(f"alt_change {alt_change}.")
-                    if velocity < 1 and alt_change < 0.1 and small_move_num != 0:
-                        logging.debug(f"Small moving {small_move_num}, num++, num now - {small_move_num}.")
+                    # print(f"Velocity {velocity}.")
+                    # Is small move? velocity smaller than 1 and altitude change  smaller than 0.1
+                    if velocity < 1 and alt_change < 0.1:
                         small_move_num += 1
+                        logging.debug(f"Small moving {small_move_num}, num++, num now - {small_move_num}.")
                     else:
                         small_move_num = 0
 
@@ -425,16 +436,18 @@ class GaSimManager(SimManager):
                     # Is deviation ?
                     # logging.debug(f"Point2line distance {deviation_dis}.")
                     if deviation_dis > 10:
-                        # logging.debug(f"Deviation {deviation_dis}, num++, num now - {deviation_num}.")
+                        if deviation_dis % 5 == 0:
+                            logging.debug(f"Deviation {round(deviation_dis, 4)}, "
+                                          f"num++, num now - {deviation_num}.")
                         deviation_num += 1
                     else:
                         deviation_num = 0
 
-                    # deviation
-                    if deviation_num > 3:
+                    # # Threshold; deviation judgement
+                    if deviation_num > 15:
                         result = 'deviation'
                         break
-                    # Threshold; Judgement
+
                     # Timeout
                     if small_move_num > 10:
                         result = 'timeout'
@@ -443,10 +456,7 @@ class GaSimManager(SimManager):
 
             # Timeout Check if stack at one point
             mid_point_time = time.time()
-            last_time = mid_point_time
             if (mid_point_time - start_time) > mission_time_out_th:
                 result = 'timeout'
                 break
-
-        logging.info(f"Monitor result: {result}")
         return result

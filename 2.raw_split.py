@@ -11,7 +11,7 @@ Train LSTM Model
 """
 if __name__ == '__main__':
 
-    pd_csv = CyLSTM.merge_file_data(f"{toolConfig.ARDUPILOT_LOG_PATH}/logs/bin_ga/csv")
+    pd_csv = CyLSTM.merge_file_data(f"{toolConfig.ARDUPILOT_LOG_PATH}/logs/bin_regular/csv")
 
     np_data = pd_csv.to_numpy()[:, :toolConfig.STATUS_LEN]
 

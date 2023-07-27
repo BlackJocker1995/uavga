@@ -69,6 +69,7 @@ if __name__ == '__main__':
         manager.mav_monitor.start_mission()
 
         result = manager.mav_monitor_error()
+        logging.info(f"Validated result: {result}")
 
         # if the result have no instability, skip.
         if not os.path.exists(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv'):
