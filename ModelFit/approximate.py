@@ -296,8 +296,6 @@ class Modeling(object):
 
             ax2 = ax1.twinx()
 
-            # if name == 'Pitch':
-            #     x += 4
             ax1.plot(x, '-', label='Predicted', linewidth=2)
             ax1.plot(y, '--', label='Real', linewidth=2)
             if name in ['AccX', 'AccY', 'AccZ']:
