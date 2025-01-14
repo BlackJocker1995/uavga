@@ -19,6 +19,7 @@ from pymavlink import mavextra, mavwp, mavutil
 from Cptool.gaMavlink import GaMavlinkAPM, DroneMavlink
 from Cptool.config import toolConfig
 from Cptool.mavtool import Location
+from loguru import logger
 
 
 class SimManager(object):
@@ -33,11 +34,11 @@ class SimManager(object):
         self.mav_msg_queue = multiprocessing.Queue()
 
         if debug:
-            logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
-                                level=logging.DEBUG)
+            logger.remove()
+            logger.add(sys.stderr, format="{time} {file} {line} {level} {message}", level="DEBUG")
         else:
-            logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
-                                level=logging.INFO)
+            logger.remove()
+            logger.add(sys.stderr, format="{time} {file} {line} {level} {message}", level="INFO")
 
     """
     Base Function
@@ -60,7 +61,7 @@ class SimManager(object):
             cmd = f'gnome-terminal -- gazebo --verbose worlds/iris_arducopter_runway.world'
         if cmd is None:
             raise ValueError('Not support mode')
-        logging.info(f'Start Simulator {toolConfig.SIM}')
+        logger.info(f'Start Simulator {toolConfig.SIM}')
         self._sim_task = pexpect.spawn(cmd)
 
     def start_multiple_sim(self, drone_i=0):
@@ -135,7 +136,7 @@ class SimManager(object):
                 cmd = f'make {pre_argv} px4_sitl jmavsim'
 
             self._sitl_task = pexpect.spawn(cmd, cwd=toolConfig.PX4_RUN_PATH, timeout=30, encoding='utf-8')
-        logging.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM}]")
+        logger.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM}]")
         if cmd is None:
             raise ValueError('Not support mode or simulator')
 
@@ -182,7 +183,7 @@ class SimManager(object):
 
             self._sitl_task = pexpect.spawn(cmd, cwd=toolConfig.PX4_RUN_PATH, timeout=30, encoding='utf-8')
 
-        logging.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM} - {drone_i}]")
+        logger.info(f"Start {toolConfig.MODE} --> [{toolConfig.SIM} - {drone_i}]")
 
     def mav_monitor_init(self, mavlink_class: Type[DroneMavlink] = DroneMavlink, drone_i=0):
         """
@@ -226,7 +227,7 @@ class SimManager(object):
 
     def start_sim_monitor(self):
         """
-        启动Airsim监控进程
+        Start Simulator monitor process
         :return:
         """
         self.sim_monitor.start()
@@ -284,13 +285,13 @@ class SimManager(object):
             if not line:
                 break
         self._sitl_task.close(force=True)
-        logging.info('Stop SITL task.')
+        logger.info('Stop SITL task.')
         logging.debug('Send mavclosed to Airsim.')
 
     def stop_sim(self):
         self._sim_task.sendcontrol('c')
         self._sim_task.close(force=True)
-        logging.info('Stop Sim task.')
+        logger.info('Stop Sim task.')
 
     """
     Other get/set
@@ -314,7 +315,7 @@ class GaSimManager(SimManager):
         monitor error during the flight
         :return:
         """
-        logging.info(f'Start error monitor.')
+        logger.info(f'Start error monitor.')
         # Setting
         mission_time_out_th = 200
         result = 'pass'
@@ -354,7 +355,7 @@ class GaSimManager(SimManager):
                 if status_message.severity == 6:
                     if "Disarming" in line or "landed" in line or "Landing" in line or "Land" in line:
                         # if successful landed, break the loop and return true
-                        logging.info("Successful break the loop.")
+                        logger.info("Successful break the loop.")
                         break
                     if "preflight disarming" in line:
                         result = 'PreArm Failed'
@@ -419,7 +420,7 @@ class GaSimManager(SimManager):
                     # Is small move? velocity smaller than 1 and altitude change  smaller than 0.1
                     if velocity < 1 and alt_change < 0.1:
                         small_move_num += 1
-                        logging.debug(f"Small moving {small_move_num}, num++, num now - {small_move_num}.")
+                        logger.debug(f"Small moving {small_move_num}, num++, num now - {small_move_num}.")
                     else:
                         small_move_num = 0
 
@@ -434,10 +435,10 @@ class GaSimManager(SimManager):
                     else:
                         deviation_dis = 0
                     # Is deviation ?
-                    # logging.debug(f"Point2line distance {deviation_dis}.")
+                    # logger.debug(f"Point2line distance {deviation_dis}.")
                     if deviation_dis > 10:
                         if deviation_dis % 5 == 0:
-                            logging.debug(f"Deviation {round(deviation_dis, 4)}, "
+                            logger.debug(f"Deviation {round(deviation_dis, 4)}, "
                                           f"num++, num now - {deviation_num}.")
                         deviation_num += 1
                     else:

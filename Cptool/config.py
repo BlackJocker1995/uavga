@@ -111,10 +111,10 @@ class ToolConfig:
                 "ATC_ANG_YAW_P",
                 "ATC_RAT_YAW_P",
                 "ATC_RAT_YAW_I",
-                # "ATC_RAT_YAW_D",
-                # "WPNAV_SPEED",
-                # "WPNAV_ACCEL",
-                # "ANGLE_MAX"
+                "ATC_RAT_YAW_D",
+                "WPNAV_SPEED",
+                "WPNAV_ACCEL",
+                "ANGLE_MAX"
             ]
 
             # self.__dict__["PARAM"] = [
