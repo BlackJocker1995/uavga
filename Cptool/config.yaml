@@ -1,0 +1,39 @@
+# UAV Configuration Settings
+
+# Operation Mode (PX4 or Ardupilot)
+mode: PX4
+
+# Simulation Settings
+simulation:
+  speed: 3
+  home: AVC_plane 
+  debug: true
+  wind_range: [8, 10.7]
+  window:
+    height: 640 
+    weight: 480
+  altitude:
+    limit_high: 50
+    limit_low: 40
+
+# Path Settings
+paths:
+  ardupilot_log: /media/rain/data
+  sitl: /home/rain/ardupilot/Tools/autotest/sim_vehicle.py
+  airsim: /media/rain/data/airsim/Africa_Savannah/LinuxNoEditor/Africa_001.sh
+  px4_run: /home/rain/PX4-Autopilot
+  jmavsim: /home/rain/PX4-Autopilot/Tools/jmavsim_run.sh
+  morse: /home/rain/ardupilot/libraries/SITL/examples/Morse/quadcopter.py
+
+# Model Settings  
+model:
+  input_len: 4
+  output_len: 1
+  segment_len: 14
+  retrans: true
+  cluster_choice_num: 10
+
+# Parameter Files
+param_files:
+  ardupilot: Cptool/param_ardu.json
+  px4: Cptool/param_px4.json

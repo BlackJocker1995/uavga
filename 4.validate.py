@@ -1,9 +1,9 @@
 import argparse
 import csv
-import logging
 import os
 import pickle
 import time
+from loguru import logger
 
 import numpy as np
 import pandas as pd
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         manager.mav_monitor.start_mission()
 
         result = manager.mav_monitor_error()
-        logging.info(f"Validated result: {result}")
+        logger.info(f"Validated result: {result}")
 
         # if the result have no instability, skip.
         if not os.path.exists(f'result/{toolConfig.MODE}/params{toolConfig.EXE}.csv'):
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         with open(f"result/{toolConfig.MODE}/params{toolConfig.EXE}.csv", 'a+') as f:
             csv_file = csv.writer(f)
             csv_file.writerow(tmp_row)
-            logging.debug(f"Write row to params{toolConfig.EXE}.csv.")
+            logger.debug(f"Write row to params{toolConfig.EXE}.csv.")
 
         manager.stop_sitl()
         i += 1

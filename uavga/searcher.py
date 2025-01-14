@@ -1,5 +1,6 @@
 import geatpy as ea
 import numpy as np
+from abc import ABC, abstractmethod
 
 from Cptool.config import toolConfig
 from Cptool.gaMavlink import GaMavlinkAPM
@@ -8,115 +9,130 @@ from ModelFit.approximate import CyLSTM
 from uavga.problem import ProblemGA, Problem, ProblemGAOld
 
 
-class SearchOptimizer(object):
+class BaseSearchOptimizer(ABC):
     def __init__(self):
-        self.predictor: CyLSTM = None
-        self.problem = Problem()
-        self.start_value = None
-        # Parameter
+        self.predictor = None
+        self.problem = None
+        self.param_bounds = None
+        self.step_unit = None
+        self._setup_params()
+        
+    def _setup_params(self):
+        """Initialize parameter settings"""
         self.participle_param = toolConfig.PARAM_PART
         para_dict = load_param()
-
-        # default value, step and boundary
         self.param_choice_dict = select_sub_dict(para_dict, self.participle_param)
         self.step_unit = read_unit_from_dict(self.param_choice_dict)
         self.default_pop = get_default_values(self.param_choice_dict)
         self.sub_value_range = read_range_from_dict(self.param_choice_dict)
 
-    def set_predictor(self, predictor):
-        self.problem.init_predictor(predictor)
+    @abstractmethod 
+    def start_optimize(self):
+        pass
 
-    def set_bounds(self):
-        # step
-        self.problem.init_bounds_and_step(self.sub_value_range, self.step_unit)
+    @abstractmethod
+    def return_best_n_gen(self, n=1):
+        pass
 
-
-class GAOptimizer(SearchOptimizer):
+class GAOptimizer(BaseSearchOptimizer):
     def __init__(self):
-        super(GAOptimizer, self).__init__()
-
-        name = 'UAVProblem'  # 初始化name（函数名称，可以随意设置）boundary
-        M = 1  # 初始化M（目标维数）
-        maxormins = [-1]  # 初始化maxormins（目标最小最大化标记列表，1：最小化该目标；-1：最大化该目标）
-        Dim = self.sub_value_range.shape[0]  # 初始化Dim（决策变量维数）
-        varTypes = [1] * Dim  # 初始化varTypes（决策变量的类型，元素为0表示对应的变量是连续的；1表示是离散的）
-        lb = self.sub_value_range[:, 0] // self.step_unit  # 决策变量下界
-        ub = self.sub_value_range[:, 1] // self.step_unit  # 决策变量上界
-        lbin = [0] * Dim  # 决策变量下边界（0表示不包含该变量的下边界，1表示包含）
-        ubin = [1] * Dim  # 决策变量上边界（0表示不包含该变量的上边界，1表示包含）
-
-        # 调用父类构造方法完成实例化
-        self.problem = ProblemGA(name=name, M=M, maxormins=maxormins, Dim=self.sub_value_range.shape[0],
-                                 varTypes=varTypes, lb=lb, ub=ub, lbin=lbin, ubin=ubin)
-
-        # Result logging
+        super().__init__()
+        self._init_ga_problem()
         self.NDSet = None
-        self.population = None
+        self.population = None 
         self.algorithm = None
 
-    def start_optimize(self):
-        NINDs = 500
-        Encoding = 'RI'  # 编码方式
-        Field = ea.crtfld(Encoding, self.problem.varTypes, self.problem.ranges,
-                          self.problem.borders)  # 创建区域描述器
-        population = (ea.Population(Encoding, Field, NINDs))  # 实例化种群对象（此时种群还没被初始化，仅仅是完成种群对象的实例化）
-        # 自定义初始化的种群soea_DE_currentToBest_1_bin_templet
-        """===============================Setting============================="""
-        self.algorithm = ea.soea_DE_currentToBest_1_bin_templet(self.problem, population)  # 实例化一个算法模板对象
-        self.algorithm.MAXGEN = 50  # 最大进化代数
-        self.algorithm.mutOper.F = 0.7  # 差分进化中的参数F
-        self.algorithm.recOper.XOVR = 0.7  # 重组概率
-        self.algorithm.trappedValue = 0.1  # “进化停滞”判断阈值
-        self.algorithm.maxTrappedCount = 10  # 进化停滞计数器最大上限值，如果连续maxTrappedCount代被判定进化陷入停滞，则终止进化
-        self.algorithm.drawing = 0  #
-        """===========================Create a population of prophets based on prior knowledge======================="""
-        prophetChrom = np.array(self.default_pop / self.step_unit, dtype=int)  # 假设已知为一条比较优秀的染色体
-        prophetPop = ea.Population(Encoding, Field, 1, prophetChrom)  # 实例化种群对象（设置个体数为1）
+    def _init_ga_problem(self):
+        """Initialize GA problem parameters"""
+        Dim = self.sub_value_range.shape[0]
+        varTypes = [1] * Dim  # 0: continuous variable; 1: discrete variable
+        lb = self.sub_value_range[:, 0] // self.step_unit  # Lower bound
+        ub = self.sub_value_range[:, 1] // self.step_unit  # Upper bound
+        lbin = [0] * Dim  # Whether to include lower bound (0: no, 1: yes)
+        ubin = [1] * Dim  # Whether to include upper bound (0: no, 1: yes)
 
-        self.algorithm.call_aimFunc(prophetPop)
-        """==========================Call the algorithm template for population evolution======================="""
-        [self.NDSet, self.population] = self.algorithm.run(prophetPop)
+        # Initialize problem instance
+        self.problem = ProblemGA(
+            name='UAVProblem',
+            M=1,  # Number of objectives
+            maxormins=[-1],  # -1: maximize, 1: minimize 
+            Dim=Dim,
+            varTypes=varTypes,
+            lb=lb, ub=ub,
+            lbin=lbin, ubin=ubin
+        )
+
+    def start_optimize(self):
+        """Execute optimization process"""
+        population = self._init_population()
+        self.algorithm = self._setup_algorithm(population)
+        prophet_pop = self._create_prophet_population()
+        self.algorithm.call_aimFunc(prophet_pop)
+        self.NDSet, self.population = self.algorithm.run(prophet_pop)
+
+    def _init_population(self, size=500):
+        """Initialize population"""
+        Field = ea.crtfld('RI', self.problem.varTypes, 
+                         self.problem.ranges,
+                         self.problem.borders)
+        return ea.Population('RI', Field, size)
+
+    def _setup_algorithm(self, population):
+        """Configure algorithm parameters"""
+        algorithm = ea.soea_DE_currentToBest_1_bin_templet(self.problem, population)
+        algorithm.MAXGEN = 50
+        algorithm.mutOper.F = 0.7
+        algorithm.recOper.XOVR = 0.7 
+        algorithm.trappedValue = 0.1
+        algorithm.maxTrappedCount = 10
+        algorithm.drawing = 0
+        return algorithm
+
+    def _create_prophet_population(self):
+        """Create prophet population based on default values"""
+        prophet_chrom = np.array(self.default_pop / self.step_unit, dtype=int)
+        Field = ea.crtfld('RI', self.problem.varTypes,
+                         self.problem.ranges,
+                         self.problem.borders)
+        return ea.Population('RI', Field, 1, prophet_chrom)
 
     def return_best_n_gen(self, n=1):
-        if (self.BestIndi is None) or (self.population is None):
-            raise ValueError('Please start_optimize() at first')
-
-        obj_trace = self.population.Phen
+        """Return best n generations"""
+        if not hasattr(self, 'BestIndi') or self.population is None:
+            raise ValueError('Please run start_optimize() first')
+            
+        obj_trace = self.population.Phen 
         var_trace = self.population.ObjV
 
-        obj_trace = np.array(obj_trace)
-        var_trace = np.array(var_trace)
+        # Get unique candidates
+        unique_indices = np.unique(var_trace, axis=0, return_index=True)[1]
+        candidate_var = var_trace[unique_indices].reshape(-1)
+        candidate_obj = obj_trace[unique_indices]
 
-        # 去除重复
-        candidate_var_index = np.unique(var_trace, axis=0, return_index=True)[1]
-        candidate_var = var_trace[candidate_var_index].reshape(-1)
-        candidate_obj = obj_trace[candidate_var_index]
+        # Sort candidates
+        sort_indices = np.argsort(self.problem.maxormins * candidate_var)
+        candidate_obj = candidate_obj[sort_indices]
 
-        candidate = self.uavproblem.maxormins * candidate_var
-        # 从小到大
-        candidate_index = np.argsort(candidate)
-        candidate_obj = candidate_obj[candidate_index]
-
-        return self.uavproblem.reasonable_range(candidate_obj)[:n]
+        return self.problem.reasonable_range(candidate_obj)[:n]
 
 
 class GAOptimizerOld(GAOptimizer):
     def __init__(self):
         super(GAOptimizerOld, self).__init__()
 
-        name = 'UAVProblem'  # 初始化name（函数名称，可以随意设置）boundary
-        M = 1  # 初始化M（目标维数）
-        maxormins = [-1]  # 初始化maxormins（目标最小最大化标记列表，1：最小化该目标；-1：最大化该目标）
-        Dim = self.sub_value_range.shape[0]  # 初始化Dim（决策变量维数）
-        varTypes = [1] * Dim  # 初始化varTypes（决策变量的类型，元素为0表示对应的变量是连续的；1表示是离散的）
-        lb = self.sub_value_range[:, 0] // self.step_unit  # 决策变量下界
-        ub = self.sub_value_range[:, 1] // self.step_unit  # 决策变量上界
-        lbin = [0] * Dim  # 决策变量下边界（0表示不包含该变量的下边界，1表示包含）
-        ubin = [1] * Dim  # 决策变量上边界（0表示不包含该变量的上边界，1表示包含）
+        name = 'UAVProblem'
+        M = 1  # Number of objectives
+        maxormins = [-1]  # Optimization direction (-1: maximize, 1: minimize)
+        Dim = self.sub_value_range.shape[0]  # Number of decision variables
+        varTypes = [1] * Dim  # Variable types (0: continuous, 1: discrete)
+        lb = self.sub_value_range[:, 0] // self.step_unit  # Lower bounds
+        ub = self.sub_value_range[:, 1] // self.step_unit  # Upper bounds
+        lbin = [0] * Dim  # Include lower bounds (0: no, 1: yes)
+        ubin = [1] * Dim  # Include upper bounds (0: no, 1: yes)
 
-        # 调用父类构造方法完成实例化
-        self.problem = ProblemGAOld(name=name, M=M, maxormins=maxormins, Dim=self.sub_value_range.shape[0],
-                                 varTypes=varTypes, lb=lb, ub=ub, lbin=lbin, ubin=ubin)
+        # Initialize problem using parent class constructor
+        self.problem = ProblemGAOld(name=name, M=M, maxormins=maxormins, Dim=Dim,
+                                  varTypes=varTypes, lb=lb, ub=ub, lbin=lbin, ubin=ubin)
 
         # Result logging
         self.NDSet = None
@@ -125,22 +141,22 @@ class GAOptimizerOld(GAOptimizer):
 
     def start_optimize(self):
         NINDs = 500
-        Encoding = 'RI'  # 编码方式
+        Encoding = 'RI'  # Encoding method
         Field = ea.crtfld(Encoding, self.problem.varTypes, self.problem.ranges,
-                          self.problem.borders)  # 创建区域描述器
-        population = (ea.Population(Encoding, Field, NINDs))  # 实例化种群对象（此时种群还没被初始化，仅仅是完成种群对象的实例化）
-        # 自定义初始化的种群soea_DE_currentToBest_1_bin_templet
+                          self.problem.borders)  # Create region descriptor
+        population = (ea.Population(Encoding, Field, NINDs))  # Instantiate population object (population not initialized yet)
+        # Custom initialization of population soea_DE_currentToBest_1_bin_templet
         """===============================Setting============================="""
-        self.algorithm = ea.soea_DE_currentToBest_1_bin_templet(self.problem, population)  # 实例化一个算法模板对象
-        self.algorithm.MAXGEN = 50  # 最大进化代数
-        self.algorithm.mutOper.F = 0.7  # 差分进化中的参数F
-        self.algorithm.recOper.XOVR = 0.7  # 重组概率
-        self.algorithm.trappedValue = 0.1  # “进化停滞”判断阈值
-        self.algorithm.maxTrappedCount = 10  # 进化停滞计数器最大上限值，如果连续maxTrappedCount代被判定进化陷入停滞，则终止进化
-        self.algorithm.drawing = 0  #
+        self.algorithm = ea.soea_DE_currentToBest_1_bin_templet(self.problem, population)  # Instantiate algorithm template object
+        self.algorithm.MAXGEN = 50  # Maximum number of generations
+        self.algorithm.mutOper.F = 0.7  # Differential evolution parameter F
+        self.algorithm.recOper.XOVR = 0.7  # Recombination probability
+        self.algorithm.trappedValue = 0.1  # "Evolution stagnation" threshold
+        self.algorithm.maxTrappedCount = 10  # Maximum limit of evolution stagnation counter
+        self.algorithm.drawing = 0
         """===========================Create a population of prophets based on prior knowledge======================="""
-        prophetChrom = np.array(self.default_pop / self.step_unit, dtype=int)  # 假设已知为一条比较优秀的染色体
-        prophetPop = ea.Population(Encoding, Field, 1, prophetChrom)  # 实例化种群对象（设置个体数为1）
+        prophetChrom = np.array(self.default_pop / self.step_unit, dtype=int)  # Assume a known good chromosome
+        prophetPop = ea.Population(Encoding, Field, 1, prophetChrom)  # Instantiate population object (set number of individuals to 1)
 
         self.algorithm.call_aimFunc(prophetPop)
         """==========================Call the algorithm template for population evolution======================="""
@@ -156,13 +172,13 @@ class GAOptimizerOld(GAOptimizer):
         obj_trace = np.array(obj_trace)
         var_trace = np.array(var_trace)
 
-        # 去除重复
+        # Remove duplicates
         candidate_var_index = np.unique(var_trace, axis=0, return_index=True)[1]
         candidate_var = var_trace[candidate_var_index].reshape(-1)
         candidate_obj = obj_trace[candidate_var_index]
 
         candidate = self.uavproblem.maxormins * candidate_var
-        # 从小到大
+        # Sort in ascending order
         candidate_index = np.argsort(candidate)
         candidate_obj = candidate_obj[candidate_index]
 

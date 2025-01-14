@@ -1,5 +1,4 @@
 import colorsys
-import logging
 import pickle
 import random
 from abc import abstractmethod
@@ -9,6 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import MeanShift, estimate_bandwidth, DBSCAN
 from sklearn.decomposition import PCA
+from loguru import logger
 
 from Cptool.config import toolConfig
 from Cptool.gaSimManager import GaSimManager
@@ -41,7 +41,7 @@ def random_choice_dbscan(segment_csv, eps=0.5):
     clf = DBSCAN(eps=eps, min_samples=5).fit(data_class)
     # Cluster reuslt
     predicted = clf.labels_
-    logging.info(f'DBSCAN class: {max(predicted)}')
+    logger.info(f'DBSCAN class: {max(predicted)}')
 
     # ------------- draw ------------------#
     c = list(map(lambda x: color(tuple(x)), ncolors(max(predicted) + 1)))
@@ -78,7 +78,7 @@ def random_choice_hierarchical(segment_csv, rate=0.5):
     thresh = 0.3
     predicted = hcluster.fclusterdata(data_class, thresh, criterion="distance")
     # Cluster reuslt
-    logging.info(f'Meanshift class: {max(predicted)}')
+    logger.info(f'Meanshift class: {max(predicted)}')
     # ------------- draw ------------------#
     for i in range(max(predicted)):
         index = np.where(predicted == i)[0]

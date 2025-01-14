@@ -785,3 +785,23 @@ class GaMavlinkPX4(DroneMavlink, multiprocessing.Process):
         # Remove file
         if os.path.exists(latest_file):
             os.remove(latest_file)
+
+
+class LogHandler:
+    """Centralized log handling"""
+    
+    def __init__(self, log_dir):
+        self.log_dir = log_dir
+        
+    def extract_log(self, log_file, log_type):
+        """Extract log data based on type"""
+        if log_type == 'px4':
+            return self._extract_px4_log(log_file)
+        elif log_type == 'ardupilot':
+            return self._extract_apm_log(log_file)
+            
+    def process_logs(self, files, processors=4):
+        """Process multiple log files in parallel"""
+        from multiprocessing import Pool
+        with Pool(processors) as p:
+            return p.map(self.extract_log, files)

@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-import logging
+from loguru import logger
 import os
 import pickle
 import time
@@ -23,32 +23,39 @@ from Cptool.mavtool import min_max_scaler
 
 
 class Modeling(object):
+    """Base class for time series modeling and prediction"""
+    
     def __init__(self, debug: bool = False):
+        """
+        Initialize the model
+        Args:
+            debug: Enable debug logging if True
+        """
         self._model: Sequential = None
         self.in_out = f"{toolConfig.INPUT_LEN}_{toolConfig.OUTPUT_LEN}"
-        if debug:
-            logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
-                                level=logging.DEBUG)
-        else:
-            logging.basicConfig(format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
-                                level=logging.INFO)
 
     @classmethod
     def cs_to_sl(cls, values):
-
-        # ensure all data is float
+        """
+        Convert continuous series to supervised learning format
+        Args:
+            values: Input time series data
+        Returns:
+            Formatted data for supervised learning
+        """
         values = values.astype('float32')
 
-        # normalize features
+        # Normalize features if retransformation is enabled
         if toolConfig.RETRANS:
             trans = cls.load_trans()
             values = min_max_scaler(trans, values)
 
-        # frame as supervised learning
-        reframed = cls.series_to_supervised(values, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN, True)
+        reframed = cls.series_to_supervised(values, toolConfig.INPUT_LEN, 
+                                          toolConfig.OUTPUT_LEN, True)
 
-        if not os.path.exists('model/{}/{}_{}'.format(toolConfig.MODE, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN)):
-            os.makedirs('model/{}/{}_{}'.format(toolConfig.MODE, toolConfig.INPUT_LEN, toolConfig.OUTPUT_LEN))
+        # Ensure model directory exists
+        model_dir = f'model/{toolConfig.MODE}/{toolConfig.INPUT_LEN}_{toolConfig.OUTPUT_LEN}'
+        os.makedirs(model_dir, exist_ok=True)
 
         return reframed
 
@@ -88,13 +95,13 @@ class Modeling(object):
         X, Y = self.data_split(values)
         train_X, valid_X, train_Y, valid_Y = train_test_split(X, Y, test_size=0.2, random_state=2022)
 
-        logging.info(f"Shape: {train_X.shape}, {train_Y.shape}, {valid_X.shape}, {valid_Y.shape}")
+        logger.info(f"Shape: {train_X.shape}, {train_Y.shape}, {valid_X.shape}, {valid_Y.shape}")
 
         return train_X, train_Y, valid_X, valid_Y
 
     def _test_split(self, values):
         X, Y = self.data_split(values)
-        logging.info(f"Shape: {X.shape}, {Y.shape}")
+        logger.info(f"Shape: {X.shape}, {Y.shape}")
         return X, Y
 
     def read_trans(self):
@@ -175,7 +182,7 @@ class Modeling(object):
 
     def predict(self, values):
         if self._model is None:
-            logging.warning('Model is not trained!')
+            logger.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
 
         predict_X = self._model.predict(values)
@@ -202,7 +209,7 @@ class Modeling(object):
         :return:
         """
         if self._model is None:
-            logging.warning('Model is not trained!')
+            logger.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
         # predict each status
         predict_feature = self._model.predict(feature_data)
@@ -210,11 +217,21 @@ class Modeling(object):
         return predict_feature
 
     def test_cmp_draw(self, test, cmp_name, num=150, exec='pdf'):
+        """
+        Draw comparison plots between predicted and actual values
+        Args:
+            test: Test data
+            cmp_name: Name for comparison plots
+            num: Number of samples to plot
+            exec: Output file format
+        """
         if self._model is None:
-            logging.warning('Model is not trained!')
-            raise ValueError('Train or load model at first')
-        if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}'):
-            os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}')
+            raise ValueError('Train or load model first')
+
+        # Create output directory
+        fig_dir = f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}'
+        os.makedirs(fig_dir, exist_ok=True)
+
         if isinstance(test, pd.DataFrame):
             test = test.values
 
@@ -281,7 +298,7 @@ class Modeling(object):
 
     def test_feature_draw(self, X, Y, cmp_name, exec='pdf'):
         if self._model is None:
-            logging.warning('Model is not trained!')
+            logger.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
         if not os.path.exists(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}'):
             os.makedirs(f'{os.getcwd()}/fig/{toolConfig.MODE}/{self.in_out}/{cmp_name}')
@@ -340,9 +357,16 @@ class Modeling(object):
             self._fit_network(X_valid, y_valid, X_test, y_test, i)
 
     def feature_deviation(self, test_data, cuda: bool = False):
-        if self._model is None:
-            logging.warning('Model is not trained!')
-            raise ValueError('Train or load model at first')
+        """
+        Calculate deviation between predicted and actual features
+        Args:
+            test_data: Test data to evaluate
+            cuda: Use GPU if True
+        Returns:
+            Array of deviation scores
+        """
+        if not self._model:
+            raise ValueError('Train or load model first')
 
         if not cuda:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -362,7 +386,7 @@ class Modeling(object):
 
     def feature_deviation_old(self, test_data, cuda: bool = False):
         if self._model is None:
-            logging.warning('Model is not trained!')
+            logger.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
 
         if not cuda:
@@ -381,7 +405,7 @@ class Modeling(object):
 
     def test(self, test_data, cuda: bool = False):
         if self._model is None:
-            logging.warning('Model is not trained!')
+            logger.warning('Model is not trained!')
             raise ValueError('Train or load model at first')
 
         if not cuda:
@@ -392,10 +416,10 @@ class Modeling(object):
         start = time.time()
         self._model.predict(test_X)
         end = time.time()
-        logging.info("time cost:%.4f s" % (end - start))
+        logger.info("time cost:%.4f s" % (end - start))
 
         score = self._model.evaluate(test_X, test_Y, batch_size=256, verbose=1)
-        logging.info(f"{score[1]}")
+        logger.info(f"{score[1]}")
         return score[1]
 
     def test_kfold(self, model_path, test_data, k, cuda: bool = False):
@@ -404,12 +428,12 @@ class Modeling(object):
             try:
                 self.set_model(f"{model_path}/lstm.h5")
             except Exception as e:
-                logging.warning('Model is not trained!')
+                logger.warning('Model is not trained!')
                 raise ValueError('Train or load model at first')
 
             score = self.test(test_data, cuda)
             scores.append(score)
-        logging.info(f"test scores: {scores}")
+        logger.info(f"test scores: {scores}")
 
     @staticmethod
     def _systematicSampling(dataMat, number):

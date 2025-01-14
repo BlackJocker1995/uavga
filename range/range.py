@@ -5,19 +5,37 @@ import numpy as np
 
 
 def satisfy_range(panda_m, top, button):
+    """
+    Calculate satisfaction rate for given parameter ranges
+    Args:
+        panda_m: Parameter data frame
+        top: Upper bounds
+        button: Lower bounds
+    Returns:
+        pass_rate: Ratio of passing configurations
+    """
     values = panda_m.values[:, :-1]
-
     to_top = (top - values).min(axis=1)
     to_button = (values - button).min(axis=1)
-
-    index = np.where((to_top >= 0) & (to_button >= 0))[0]
-    satisfy_value = panda_m.iloc[index]
-    pass_index = satisfy_value.result == 'pass'
-    pass_rate = pass_index.values.sum() / satisfy_value.shape[0]
-    print(f'rate: {pass_rate}')
+    
+    valid_indices = np.where((to_top >= 0) & (to_button >= 0))[0]
+    if len(valid_indices) == 0:
+        return 0.0
+        
+    satisfy_value = panda_m.iloc[valid_indices]
+    pass_rate = (satisfy_value.result == 'pass').sum() / len(satisfy_value)
+    print(f'Pass rate: {pass_rate:.2f}')
+    return pass_rate
 
 
 def best_summary(UavConfig):
+    """
+    Analyze and summarize best configurations
+    Args:
+        UavConfig: UAV configuration object
+    Returns:
+        bincout: Most common parameter values
+    """
     objV = 'E:/program/uavga/Result/ObjV.csv'
     phen = 'E:/program/uavga/Result/Phen.csv'
 

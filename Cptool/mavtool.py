@@ -35,6 +35,26 @@ class Location:
         return mavextra.distance_lat_lon(point1.x, point1.y,
                                          point2.x, point2.y)
 
+class MavlinkManager:
+    """Manage mavlink connections and messaging"""
+    
+    def __init__(self):
+        self.connections = {}
+        
+    def create_connection(self, vehicle_id, port):
+        """Create and store mavlink connection"""
+        conn = mavutil.mavlink_connection(f'udp:0.0.0.0:{port}')
+        self.connections[vehicle_id] = conn
+        return conn
+        
+    async def monitor_messages(self, vehicle_id):
+        """Async message monitoring"""
+        conn = self.connections[vehicle_id]
+        while True:
+            msg = await conn.recv_match_async()
+            if msg:
+                await self.process_message(msg)
+
 def load_param():
     """
     load parameter we want to fuzzing
